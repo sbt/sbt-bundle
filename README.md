@@ -1,5 +1,7 @@
 # Reactive Runtime Bundle Plugin
 
+[![Build Status](https://api.travis-ci.org/sbt/sbt-bundle.png?branch=master)](https://travis-ci.org/sbt/sbt-bundle)
+
 ## Introduction
 
 A plugin that uses the [sbt-native-packager](https://github.com/sbt/sbt-native-packager) to produce Reactive Runtime bundles.
