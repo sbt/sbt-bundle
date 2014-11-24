@@ -1,4 +1,4 @@
-lazy val root = (project in file(".")).enablePlugins(SbtNativePackager)
+lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
 name := "simple-test"
 
@@ -9,7 +9,7 @@ val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 checkBundleConf := {
   val contents = IO.read(target.value / "reactive-runtime" / "tmp" / "bundle.conf")
   val expectedContents = """version = "1.0.0"
-                           |application = "simple-test-0.1.0-SNAPSHOT"
+                           |system  = "simple-test-0.1.0-SNAPSHOT"
                            |components = {
                            |  "simple-test-0.1.0-SNAPSHOT" = {
                            |    description      = "simple-test"

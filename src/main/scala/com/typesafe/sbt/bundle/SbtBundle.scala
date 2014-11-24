@@ -16,11 +16,11 @@ object Import {
   val ReactiveRuntime = config("rr") extend Universal
 
   object BundleKeys {
-    val application = SettingKey[String]("bundle-application","A logical name that can be used to associate multiple bundles with each other.")
     val bundleConf = TaskKey[String]("bundle-conf","The bundle configuration file contents")
     val bundleType = SettingKey[Configuration]("bundle-type","The type of configuration that this bundling relates to. By default Universal is used.")
-    val endpoints = SettingKey[Map[String, (String, String)]]("bundle-endpoints", """Provides a port mapping between an external facing endpoing and an internal one. The default is Map("web" -> ("http://0.0.0.0:9000" -> "http://0.0.0.0:9000"))""")
+    val endpoints = SettingKey[Map[String, (String, String)]]("bundle-endpoints", """Provides a port mapping between an external facing endpoint and an internal one. The default is Map("web" -> ("http://0.0.0.0:9000" -> "http://0.0.0.0:9000"))""")
     val startCommand = SettingKey[Seq[String]]("bundle-start-command", "Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.")
+    val system = SettingKey[String]("bundle-system","A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.")
   }
 }
 
@@ -37,7 +37,7 @@ object SbtBundle extends AutoPlugin {
   import SbtNativePackager.autoImport._
 
   override def projectSettings = Seq(
-    application := (packageName in Universal).value,
+    system := (packageName in Universal).value,
     bundleConf := getConfig.value,
     bundleType := Universal,
     NativePackagerKeys.dist in ReactiveRuntime := Def.taskDyn {
@@ -106,7 +106,7 @@ object SbtBundle extends AutoPlugin {
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
     s"""
          |version = "1.0.0"
-         |application = "${application.value}"
+         |system  = "${system.value}"
          |components = {
          |  "${(packageName in Universal).value}" = {
          |    description      = "${projectInfo.value.description}"

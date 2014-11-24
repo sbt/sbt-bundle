@@ -1,4 +1,4 @@
-lazy val root = (project in file(".")).enablePlugins(SbtNativePackager)
+lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
 name := "simple-test"
 
