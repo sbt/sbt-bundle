@@ -13,7 +13,7 @@ The plugin will take any package that you have presently configured and wrap it 
 In addition to declaring the `sbt-native-packager`, declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.1.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.2.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
