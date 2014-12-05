@@ -26,8 +26,8 @@ object Import {
       "A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0."
     )
 
-    val statusCommand = SettingKey[String](
-      "bundle-status-command",
+    val startStatusCommand = SettingKey[String](
+      "bundle-start-status-command",
       "A command to be executed to check the start status; by default `exit 0` is used"
     )
 
@@ -71,7 +71,7 @@ object SbtBundle extends AutoPlugin {
   override def projectSettings = Seq(
     bundleConf := getConfig.value,
     system := (packageName in Universal).value,
-    statusCommand := "exit 0",
+    startStatusCommand := "exit 0",
     bundleType := Universal,
     startCommand := Seq((file("bin") / (executableScriptName in Universal).value).getPath),
     endpoints := Map("web" -> ("http://0.0.0.0:9000" -> "http://0.0.0.0:9000")),
@@ -125,15 +125,15 @@ object SbtBundle extends AutoPlugin {
     }
   }
 
-  private def format(strings: Seq[String]): String =
-    strings.map(quote).mkString("[ ", ", ", " ]")
+  private def formatSeq(strings: Seq[String]): String =
+    strings.map(quote).mkString("[", ", ", "]")
 
   private def formatEndpoints(endpoints: Map[String, (String, String)]): String = {
     val formatted =
       for {
         (label, (from, to)) <- endpoints
         quotedLabel = quote(label)
-        fromTo = format(Seq(from, to))
+        fromTo = formatSeq(Seq(from, to))
       } yield s"$quotedLabel = $fromTo"
     formatted.mkString("{ ", ", ", " }")
   }
@@ -142,14 +142,14 @@ object SbtBundle extends AutoPlugin {
     "\"" + s + "\""
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
-    s"""|version        = "1.0.0"
-        |system         = "${system.value}"
-        |status-command = "${statusCommand.value}"
+    s"""|version              = "1.0.0"
+        |system               = "${system.value}"
+        |start-status-command = "${startStatusCommand.value}"
         |components = {
         |  "${(packageName in Universal).value}" = {
         |    description      = "${projectInfo.value.description}"
         |    file-system-type = "${bundleType.value}"
-        |    start-command    = ${format(startCommand.value)}
+        |    start-command    = ${formatSeq(startCommand.value)}
         |    endpoints        = ${formatEndpoints(endpoints.value)}
         |  }
         |}
