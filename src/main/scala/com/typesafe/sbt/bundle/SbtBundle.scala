@@ -125,12 +125,21 @@ object SbtBundle extends AutoPlugin {
     }
   }
 
-  private def format(s: Seq[String]): String = s.map(s => "\"" + s + "\"").mkString("[", ",", "]")
+  private def format(strings: Seq[String]): String =
+    strings.map(quote).mkString("[ ", ", ", " ]")
 
   private def formatEndpoints(endpoints: Map[String, (String, String)]): String = {
-    val formatted = for ((label, (from, to)) <- endpoints) yield label + " = " + format(Seq(from, to))
-    formatted.mkString("{", ",", "}")
+    val formatted =
+      for {
+        (label, (from, to)) <- endpoints
+        quotedLabel = quote(label)
+        fromTo = format(Seq(from, to))
+      } yield s"$quotedLabel = $fromTo"
+    formatted.mkString("{ ", ", ", " }")
   }
+
+  private def quote(s: String): String =
+    "\"" + s + "\""
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
     s"""|version        = "1.0.0"

@@ -17,8 +17,8 @@ checkBundleConf := {
                             |  "simple-test-0.1.0-SNAPSHOT" = {
                             |    description      = "simple-test"
                             |    file-system-type = "universal"
-                            |    start-command    = ["bin/simple-test"]
-                            |    endpoints        = {web = ["http://0.0.0.0:9000","http://0.0.0.0:9000"]}
+                            |    start-command    = [ "bin/simple-test" ]
+                            |    endpoints        = { "web" = [ "http://0.0.0.0:9000", "http://0.0.0.0:9000" ] }
                             |  }
                             |}""".stripMargin
   contents should include(expectedContents)
