@@ -14,6 +14,8 @@ import scala.annotation.tailrec
 
 object Import {
 
+  case class Endpoint(protocol: String, bindPort: Int)
+
   object BundleKeys {
 
     val bundleConf = TaskKey[String](
@@ -41,9 +43,9 @@ object Import {
       "Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder."
     )
 
-    val endpoints = SettingKey[Map[String, (String, String)]](
+    val endpoints = SettingKey[Map[String, Endpoint]](
       "bundle-endpoints",
-      """Provides a port mapping between an external facing endpoint and an internal one. The default is Map("web" -> ("http://0.0.0.0:9000" -> "http://0.0.0.0:9000"))"""
+      """Declares endpoints. The default is Map("web" -> Endpoint("http", 9000))"""
     )
   }
 
@@ -74,7 +76,7 @@ object SbtBundle extends AutoPlugin {
     startStatusCommand := "exit 0",
     bundleType := Universal,
     startCommand := Seq((file("bin") / (executableScriptName in Universal).value).getPath),
-    endpoints := Map("web" -> ("http://0.0.0.0:9000" -> "http://0.0.0.0:9000")),
+    endpoints := Map("web" -> Endpoint("http", 9000)),
     NativePackagerKeys.dist in ReactiveRuntime := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
@@ -126,20 +128,18 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def formatSeq(strings: Seq[String]): String =
-    strings.map(quote).mkString("[", ", ", "]")
+    strings.map(s => s""""$s"""").mkString("[", ", ", "]")
 
-  private def formatEndpoints(endpoints: Map[String, (String, String)]): String = {
+  private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
-        (label, (from, to)) <- endpoints
-        quotedLabel = quote(label)
-        fromTo = formatSeq(Seq(from, to))
-      } yield s"$quotedLabel = $fromTo"
-    formatted.mkString("{ ", ", ", " }")
+        (label, Endpoint(protocol, bindPort)) <- endpoints
+      } yield s"""|      "$label" = {
+                  |        protocol  = "$protocol"
+                  |        bind-port = $bindPort
+                  |      }""".stripMargin
+    formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
-
-  private def quote(s: String): String =
-    "\"" + s + "\""
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
     s"""|version              = "1.0.0"
