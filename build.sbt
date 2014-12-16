@@ -10,7 +10,7 @@ scalacOptions ++= List(
   "-unchecked",
   "-deprecation",
   "-language:_",
-  "-target:jvm-1.7",
+  "-target:jvm-1.6",
   "-encoding", "UTF-8"
 )
 
@@ -21,7 +21,7 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(DoubleIndentClassDeclaration, true)
   .setPreference(PreserveDanglingCloseParenthesis, true)
 
-addSbtPlugin("com.typesafe.sbt" %% "sbt-native-packager" % "1.0.0-M2")
+addSbtPlugin("com.typesafe.sbt" %% "sbt-native-packager" % "1.0.0-M3")
 
 releaseSettings
 ReleaseKeys.versionBump := sbtrelease.Version.Bump.Minor
