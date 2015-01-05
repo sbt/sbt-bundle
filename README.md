@@ -1,10 +1,10 @@
-# Reactive Runtime Bundle Plugin
+# Typesafe ConductR Bundle Plugin
 
 [![Build Status](https://api.travis-ci.org/sbt/sbt-bundle.png?branch=master)](https://travis-ci.org/sbt/sbt-bundle)
 
 ## Introduction
 
-A plugin that uses the [sbt-native-packager](https://github.com/sbt/sbt-native-packager) to produce Reactive Runtime bundles.
+A plugin that uses the [sbt-native-packager](https://github.com/sbt/sbt-native-packager) to produce Typesafe ConductR bundles.
 
 The plugin will take any package that you have presently configured and wrap it in a bundle.
 
@@ -13,7 +13,7 @@ The plugin will take any package that you have presently configured and wrap it 
 In addition to declaring the `sbt-native-packager`, declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.4.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.5.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
@@ -22,11 +22,11 @@ Declaring the native packager or any of its other plugins should be sufficient. 
 lazy val root = (project in file(".")).enablePlugins(SbtNativePackager)
 ```
 
-## Reactive Runtime Bundles
+## Typesafe ConductR Bundles
 
-Reactive Runtime has its own bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component, but it is also possible to have multiple components per bundle. You may want to do this when there is a strong dependency between one component and another. For example, perhaps a Play 2.2 applications requires a specific version of Nginx to proxy it (not that this is a real situation, just an example).
+Typesafe ConductR has its own bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component, but it is also possible to have multiple components per bundle. You may want to do this when there is a strong dependency between one component and another. For example, perhaps a Play 2.2 applications requires a specific version of Nginx to proxy it (not that this is a real situation, just an example).
 
-Bundles provide Reactive Runtime with some basic knowledge about components in a *bundle descriptor*; in particular, what is required in order to start a component. The following is an example of a `bundle.conf` descriptor:
+Bundles provide Typesafe ConductR with some basic knowledge about components in a *bundle descriptor*; in particular, what is required in order to start a component. The following is an example of a `bundle.conf` descriptor:
 ([Typesafe configuration](https://github.com/typesafehub/config) is used):
 
 ```
