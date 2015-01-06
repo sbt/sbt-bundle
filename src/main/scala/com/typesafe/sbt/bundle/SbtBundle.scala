@@ -49,7 +49,7 @@ object Import {
     )
   }
 
-  val ConductR = config("conductr") extend Universal
+  val Bundle = config("bundle") extend Universal
 }
 
 object SbtBundle extends AutoPlugin {
@@ -77,22 +77,22 @@ object SbtBundle extends AutoPlugin {
     bundleType := Universal,
     startCommand := Seq((file("bin") / (executableScriptName in Universal).value).getPath),
     endpoints := Map("web" -> Endpoint("http", 9000)),
-    NativePackagerKeys.dist in ConductR := Def.taskDyn {
+    NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
       }.value
     }.value,
-    NativePackagerKeys.stage in ConductR := Def.taskDyn {
+    NativePackagerKeys.stage in Bundle := Def.taskDyn {
       Def.task {
         stageBundle(bundleType.value)
       }.value
     }.value,
-    NativePackagerKeys.stagingDirectory in ConductR := (target in ConductR).value / "stage",
-    target in ConductR := target.value / "typesafe-conductr"
+    NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
+    target in Bundle := target.value / "typesafe-conductr"
   )
 
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
-    val bundleTarget = (target in ConductR).value
+    val bundleTarget = (target in Bundle).value
     val configTarget = bundleTarget / "tmp"
     def relParent(p: (File, String)): (File, String) =
       (p._1, (packageName in Universal).value + java.io.File.separator + p._2)
@@ -157,7 +157,7 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def stageBundle(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
-    val bundleTarget = (NativePackagerKeys.stagingDirectory in ConductR).value
+    val bundleTarget = (NativePackagerKeys.stagingDirectory in Bundle).value
     writeConfig(bundleTarget, bundleConf.value)
     val componentTarget = bundleTarget / (packageName in Universal).value
     IO.copy((mappings in bundleTypeConfig).value.map(p => (p._1, componentTarget / p._2)))

@@ -10,7 +10,7 @@ The plugin will take any package that you have presently configured and wrap it 
 
 ## Usage
 
-In addition to declaring the `sbt-native-packager`, declare the plugin (typically in a `plugins.sbt`):
+Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
 addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.5.0")
@@ -20,6 +20,22 @@ Declaring the native packager or any of its other plugins should be sufficient. 
 
 ```scala
 lazy val root = (project in file(".")).enablePlugins(SbtNativePackager)
+```
+
+_Note that if you have used a pre 1.0 version of sbt-native-packager then you must remove imports such as the following from your `.sbt` files:_
+
+
+```
+import com.typesafe.sbt.SbtNativePackager._
+import NativePackagerKeys._
+```
+
+_...otherwise you will get duplicate imports reported. This is because the new 1.0+ version uses sbt's auto plugin feature._
+
+Finally, produce a bundle:
+
+```
+bundle:dist
 ```
 
 ## Typesafe ConductR Bundles
