@@ -13,16 +13,22 @@ The plugin will take any package that you have presently configured and wrap it 
 Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.5.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.6.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
 
 ```scala
-lazy val root = (project in file(".")).enablePlugins(SbtNativePackager)
+lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 ```
 
-_Note that if you have used a pre 1.0 version of sbt-native-packager then you must remove imports such as the following from your `.sbt` files:_
+_Note that if you have used Play 2.3 that you must also additionally enable `JavaAppPackaging` for your build e.g.:_
+
+```scala
+enablePlugins(JavaAppPackaging, PlayScala)
+```
+
+_Note also that if you have used a pre 1.0 version of sbt-native-packager then you must remove imports such as the following from your `.sbt` files:_
 
 
 ```
