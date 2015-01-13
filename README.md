@@ -61,8 +61,9 @@ components = {
     start-command    = ["bin/angular-seed-play"]
     endpoints        = {
       web = {
-        protocol  = "http"
-        bind-port = 9000
+        protocol     = "http"
+        bind-port    = 0
+        service-port = 9000
       }
     }
   }

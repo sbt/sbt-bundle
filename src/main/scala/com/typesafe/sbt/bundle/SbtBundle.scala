@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 
 object Import {
 
-  case class Endpoint(protocol: String, bindPort: Int)
+  case class Endpoint(protocol: String, bindPort: Int, servicePort: Int)
 
   object BundleKeys {
 
@@ -45,7 +45,7 @@ object Import {
 
     val endpoints = SettingKey[Map[String, Endpoint]](
       "bundle-endpoints",
-      """Declares endpoints. The default is Map("web" -> Endpoint("http", 9000))"""
+      """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, 9000))"""
     )
   }
 
@@ -76,7 +76,7 @@ object SbtBundle extends AutoPlugin {
     startStatusCommand := "exit 0",
     bundleType := Universal,
     startCommand := Seq((file("bin") / (executableScriptName in Universal).value).getPath),
-    endpoints := Map("web" -> Endpoint("http", 9000)),
+    endpoints := Map("web" -> Endpoint("http", 0, 9000)),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
@@ -133,10 +133,11 @@ object SbtBundle extends AutoPlugin {
   private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
-        (label, Endpoint(protocol, bindPort)) <- endpoints
+        (label, Endpoint(protocol, bindPort, servicePort)) <- endpoints
       } yield s"""|      "$label" = {
-                  |        protocol  = "$protocol"
-                  |        bind-port = $bindPort
+                  |        protocol     = "$protocol"
+                  |        bind-port    = $bindPort
+                  |        service-port = $servicePort
                   |      }""".stripMargin
     formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
