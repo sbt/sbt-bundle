@@ -8,8 +8,8 @@ name := "simple-test"
 version := "0.1.0-SNAPSHOT"
 
 BundleKeys.endpoints := Map(
-  "web" -> Endpoint("http", 9000),
-  "other" -> Endpoint("http", 9001)
+  "web" -> Endpoint("http", 0, 9000),
+  "other" -> Endpoint("http", 0, 9001)
 )
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
@@ -26,12 +26,14 @@ checkBundleConf := {
                             |    start-command    = ["bin/simple-test"]
                             |    endpoints        = {
                             |      "web" = {
-                            |        protocol  = "http"
-                            |        bind-port = 9000
+                            |        protocol     = "http"
+                            |        bind-port    = 0
+                            |        service-port = 9000
                             |      },
                             |      "other" = {
-                            |        protocol  = "http"
-                            |        bind-port = 9001
+                            |        protocol     = "http"
+                            |        bind-port    = 0
+                            |        service-port = 9001
                             |      }
                             |    }
                             |  }
