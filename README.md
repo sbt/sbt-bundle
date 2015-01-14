@@ -70,6 +70,42 @@ components = {
 }
 ```
 
+## Endpoints
+
+Understanding endpoint declarations is important in order for your bundle to be able to become available within ConductR.
+
+A bundle's component may be run either within a container or on the ConductR host. In either circumstance a port needs to be specified so that the component’s application or service may bind to that port.
+
+Because multiple bundles may run on the same host, and that their respective components may bind to the same port, we have a means of avoiding them clash.
+
+The following port definitions are used:
+
+Name         | Description
+-------------|------------
+service-port | The port number to be used as the public-facing port. It is proxied to the host-port.
+host-port    | This is not declared but is dynamically allocated if bundle is running in a container. Otherwise it has the same value as bind-port.
+bind-port    | The port the bundle component’s application or service actually binds to. When this is 0 it will be dynamically allocated (which is the default).
+
+Endpoints are declared using an `endpoint` setting using an Map of endpoint-name/`Endpoint(protocol, bindPort, servicePort)` pairs.
+
+The bind-port allocated to your bundle will be available as an environment variable to your component. For example, given the default settings where an endpoint named "web" is declared that has a dynamically allocated port, an environment variable named `WEB_BIND_PORT` will become available. The value of this environment variable should be used to bind to. 
+
+As an example, and for Play applications, the following can be specified:
+
+    BundleKeys.startCommand += "-Dhttp.port=$WEB_BIND_PORT"
+
+### Docker Containers and ports
+
+When your component will runs within a container you may alternatively declare the bind port to be whatever it may be. Taking our Play example again, we can set the bind port with no problem of it clashing with another port given that it is run within a container:
+
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, 9000))
+
+### Service ports
+
+The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used:
+
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 0, 80))
+
 ## Settings
 
 The following settings are provided under the `BundleKeys` object:
@@ -78,7 +114,7 @@ Name         | Description
 -------------|-------------
 bundleConf   | The bundle configuration file contents.
 bundleType   | The type of configuration that this bundling relates to. By default Universal is used.
-endpoints    | Declares endpoints. The default is `Map("web" -> Endpoint("http", 9000))`.
+endpoints    | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000))`.
 startCommand | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
 system       | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
 
