@@ -60,11 +60,9 @@ object SbtBundle extends AutoPlugin {
 
   val autoImport = Import
 
-  private val sha256 = "SHA-256"
+  private final val Sha256 = "SHA-256"
 
-  private val utf8 = "UTF-8"
-
-  private val utf8Charset = Charset.forName(utf8)
+  private val utf8 = Charset.forName("utf-8")
 
   override def `requires` = SbtNativePackager
 
@@ -110,7 +108,7 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def digestFile(f: File): Array[Byte] = {
-    val digest = MessageDigest.getInstance(sha256)
+    val digest = MessageDigest.getInstance(Sha256)
     val in = new BufferedInputStream(new FileInputStream(f))
     val buf = Array.ofDim[Byte](8192)
     try {
@@ -130,7 +128,7 @@ object SbtBundle extends AutoPlugin {
   private def formatSeq(strings: Seq[String]): String =
     strings.map(s => s""""$s"""").mkString("[", ", ", "]")
 
-  private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
+  private def formatEndpoints(name: String, endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
         (label, Endpoint(protocol, bindPort, servicePort)) <- endpoints
@@ -138,6 +136,7 @@ object SbtBundle extends AutoPlugin {
                   |        protocol     = "$protocol"
                   |        bind-port    = $bindPort
                   |        service-port = $servicePort
+                  |        service-name = "/$name"
                   |      }""".stripMargin
     formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
@@ -151,7 +150,7 @@ object SbtBundle extends AutoPlugin {
         |    description      = "${projectInfo.value.description}"
         |    file-system-type = "${bundleType.value}"
         |    start-command    = ${formatSeq(startCommand.value)}
-        |    endpoints        = ${formatEndpoints(endpoints.value)}
+        |    endpoints        = ${formatEndpoints(name.value, endpoints.value)}
         |  }
         |}
         |""".stripMargin
@@ -167,7 +166,7 @@ object SbtBundle extends AutoPlugin {
 
   private def writeConfig(target: File, contents: String): File = {
     val configFile = target / "bundle.conf"
-    IO.write(configFile, contents, utf8Charset)
+    IO.write(configFile, contents, utf8)
     configFile
   }
 }

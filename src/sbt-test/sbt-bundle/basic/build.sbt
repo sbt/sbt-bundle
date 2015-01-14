@@ -29,11 +29,13 @@ checkBundleConf := {
                             |        protocol     = "http"
                             |        bind-port    = 0
                             |        service-port = 9000
+                            |        service-name = "/simple-test"
                             |      },
                             |      "other" = {
                             |        protocol     = "http"
                             |        bind-port    = 0
                             |        service-port = 9001
+                            |        service-name = "/simple-test"
                             |      }
                             |    }
                             |  }
