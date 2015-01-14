@@ -104,7 +104,7 @@ When your component will runs within a container you may alternatively declare t
 
 The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used:
 
-    BundleKeys.endpoints := Map("web" -> Endpoint("http", 0, 80))
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, 80))
 
 ## Settings
 
