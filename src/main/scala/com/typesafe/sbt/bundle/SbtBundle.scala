@@ -99,14 +99,14 @@ object SbtBundle extends AutoPlugin {
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
-    val tgz = Archives.makeTgz(bundleTarget, (packageName in Universal).value, bundleMappings)
-    val tgzName = tgz.getName
-    val exti = tgzName.lastIndexOf('.')
-    val hash = Hash.toHex(digestFile(tgz))
-    val hashName = tgzName.take(exti) + "-" + hash + tgzName.drop(exti)
-    val hashTgz = tgz.getParentFile / hashName
-    IO.move(tgz, hashTgz)
-    hashTgz
+    val archive = Archives.makeZip(bundleTarget, (packageName in Universal).value, bundleMappings)
+    val archiveName = archive.getName
+    val exti = archiveName.lastIndexOf('.')
+    val hash = Hash.toHex(digestFile(archive))
+    val hashName = archiveName.take(exti) + "-" + hash + archiveName.drop(exti)
+    val hashArchive = archive.getParentFile / hashName
+    IO.move(archive, hashArchive)
+    hashArchive
   }
 
   private def digestFile(f: File): Array[Byte] = {
