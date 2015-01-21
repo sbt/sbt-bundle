@@ -28,11 +28,6 @@ object Import {
       "A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0."
     )
 
-    val startStatusCommand = SettingKey[String](
-      "bundle-start-status-command",
-      "A command to be executed to check the start status; by default `exit 0` is used"
-    )
-
     val bundleType = SettingKey[Configuration](
       "bundle-type",
       "The type of configuration that this bundling relates to. By default Universal is used."
@@ -71,7 +66,6 @@ object SbtBundle extends AutoPlugin {
   override def projectSettings = Seq(
     bundleConf := getConfig.value,
     system := (packageName in Universal).value,
-    startStatusCommand := "exit 0",
     bundleType := Universal,
     startCommand := Seq((file("bin") / (executableScriptName in Universal).value).getPath),
     endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
@@ -142,9 +136,8 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
-    s"""|version              = "1.0.0"
-        |system               = "${system.value}"
-        |start-status-command = "${startStatusCommand.value}"
+    s"""|version    = "1.0.0"
+        |system     = "${system.value}"
         |components = {
         |  "${(packageName in Universal).value}" = {
         |    description      = "${projectInfo.value.description}"
