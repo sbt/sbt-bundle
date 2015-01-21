@@ -8,8 +8,8 @@ name := "simple-test"
 version := "0.1.0-SNAPSHOT"
 
 BundleKeys.endpoints := Map(
-  "web" -> Endpoint("http", 0, 9000),
-  "other" -> Endpoint("http", 0, 9001)
+  "web" -> Endpoint("http", 0, 9000, "/simple-test"),
+  "other" -> Endpoint("http", 0, 9001, "/simple-test")
 )
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")

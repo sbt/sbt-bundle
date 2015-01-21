@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 
 object Import {
 
-  case class Endpoint(protocol: String, bindPort: Int, servicePort: Int)
+  case class Endpoint(protocol: String, bindPort: Int, servicePort: Int, serviceName: String)
 
   object BundleKeys {
 
@@ -45,7 +45,7 @@ object Import {
 
     val endpoints = SettingKey[Map[String, Endpoint]](
       "bundle-endpoints",
-      """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, 9000))"""
+      """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, 9000, "$name")) where the service name is the name of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example."""
     )
   }
 
@@ -74,7 +74,7 @@ object SbtBundle extends AutoPlugin {
     startStatusCommand := "exit 0",
     bundleType := Universal,
     startCommand := Seq((file("bin") / (executableScriptName in Universal).value).getPath),
-    endpoints := Map("web" -> Endpoint("http", 0, 9000)),
+    endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
@@ -128,15 +128,15 @@ object SbtBundle extends AutoPlugin {
   private def formatSeq(strings: Seq[String]): String =
     strings.map(s => s""""$s"""").mkString("[", ", ", "]")
 
-  private def formatEndpoints(name: String, endpoints: Map[String, Endpoint]): String = {
+  private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
-        (label, Endpoint(protocol, bindPort, servicePort)) <- endpoints
+        (label, Endpoint(protocol, bindPort, servicePort, serviceName)) <- endpoints
       } yield s"""|      "$label" = {
                   |        protocol     = "$protocol"
                   |        bind-port    = $bindPort
                   |        service-port = $servicePort
-                  |        service-name = "/$name"
+                  |        service-name = "$serviceName"
                   |      }""".stripMargin
     formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
@@ -150,7 +150,7 @@ object SbtBundle extends AutoPlugin {
         |    description      = "${projectInfo.value.description}"
         |    file-system-type = "${bundleType.value}"
         |    start-command    = ${formatSeq(startCommand.value)}
-        |    endpoints        = ${formatEndpoints(name.value, endpoints.value)}
+        |    endpoints        = ${formatEndpoints(endpoints.value)}
         |  }
         |}
         |""".stripMargin

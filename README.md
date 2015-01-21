@@ -71,6 +71,40 @@ components = {
 }
 ```
 
+## Standard Environment Variables
+The following standard environment variables are available to a bundle component at runtime:
+
+Name                   | Description
+-----------------------|------------
+BUNDLE_ID              | The bundle identifier associated with the bundle and its optional configuration.
+BUNDLE_SYSTEM          | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
+CONDUCTR_CONTROL       | A URL for the control protocol of ConductR, composed as $CONDUCTR_CONTROL_PROTO://$CONDUCTR_CONTROL_IP:$CONDUCTR_CONTROL_PORT
+CONDUCTR_CONTROL_PROTO | The protocol of the above.
+CONDUCTR_CONTROL_IP    | The assigned ConductR’s bind IP address.
+CONDUCTR_CONTROL_PORT  | The port for the above. Inaccessible to containerized bundles such as those hosted by Docker.
+CONDUCTR_STATUS        | A URL for components to report their start status, composed as $CONDUCTR_STATUS_PROTO://$CONDUCTR_STATUS_IP:$CONDUCTR_STATUS_PORT
+CONDUCTR_STATUS_PROTO  | The protocol of the above.
+CONDUCTR_STATUS_IP     | The assigned ConductR’s bind IP address.
+CONDUCTR_STATUS_PORT   | The port for the above.
+SERVICE_LOCATOR        | A URL composed as $SERVICE_LOCATOR_PROTO://$SERVICE_LOCATOR_IP:$SERVICE_LOCATOR_PORT
+SERVICE_LOCATOR_PROTO  | The protocol of the above.
+SERVICE_LOCATOR_IP     | The interface of an http service for resolving addresses e.g. haproxy. This will be equivalent to the CONDUCTR used for the ConductR i.e. its bind address and assumes that the service locator will always bind to the same interface as the ConductR (which is reasonable given that the service locator will depend on ConductR state).
+SERVICE_LOCATOR_PORT   | The port of the above.
+HOST_IP                | The IP address of a bundle component’s host.
+
+In addition the following environment variables are declared for each component endpoint:
+
+Name              | Description
+------------------|------------
+name_PROTO        | The protocol of a bundle component’s endpoint.
+name_SERVICE      | A bundle component’s addressable service URL which will be used for proxying purposes. It is composed as $name_PROTO://$name_HOST_IP:$name_SERVICE_PORT$name_SERVICE_NAME
+name_SERVICE_NAME | A bundle component’s addressable service name for proxying purposes.
+name_SERVICE_PORT | The port to be used for proxying the host port to.
+name_HOST         | A bundle component’s host URL composed as $name_PROTO://$name_HOST_IP:$name_HOST_PORT
+name_HOST_IP      | The address of a bundle’s host.
+name_HOST_PORT    | The port exposed on a bundle’s host.
+name_BIND_PORT    | The port the component should bind to.
+
 ## Endpoints
 
 Understanding endpoint declarations is important in order for your bundle to be able to become available within ConductR.
@@ -84,10 +118,11 @@ The following port definitions are used:
 Name         | Description
 -------------|------------
 service-port | The port number to be used as the public-facing port. It is proxied to the host-port.
+service-name | A name to be used to address the service. In the case of http protocols, this is interpreted as a path to be used for proxying. Other protocols will have different interpretations.
 host-port    | This is not declared but is dynamically allocated if bundle is running in a container. Otherwise it has the same value as bind-port.
 bind-port    | The port the bundle component’s application or service actually binds to. When this is 0 it will be dynamically allocated (which is the default).
 
-Endpoints are declared using an `endpoint` setting using an Map of endpoint-name/`Endpoint(protocol, bindPort, servicePort)` pairs.
+Endpoints are declared using an `endpoint` setting using an Map of endpoint-name/`Endpoint(protocol, bindPort, servicePort, serviceName)` pairs.
 
 The bind-port allocated to your bundle will be available as an environment variable to your component. For example, given the default settings where an endpoint named "web" is declared that has a dynamically allocated port, an environment variable named `WEB_BIND_PORT` will become available. The value of this environment variable should be used to bind to. 
 
@@ -103,9 +138,9 @@ When your component will runs within a container you may alternatively declare t
 
 ### Service ports
 
-The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used:
+The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used to resolve `/myservices/someservice` on:
 
-    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, 80))
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, 80, "/myservices/someservice"))
 
 ## Settings
 
@@ -115,7 +150,7 @@ Name         | Description
 -------------|-------------
 bundleConf   | The bundle configuration file contents.
 bundleType   | The type of configuration that this bundling relates to. By default Universal is used.
-endpoints    | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000))`.
+endpoints    | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000, "$name"))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
 startCommand | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
 system       | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
 
