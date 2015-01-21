@@ -13,7 +13,7 @@ The plugin will take any package that you have presently configured and wrap it 
 Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.9.1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.10.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
@@ -64,6 +64,7 @@ components = {
         protocol     = "http"
         bind-port    = 0
         service-port = 9000
+        service-name = "/angular-seed-play"
       }
     }
   }
@@ -74,7 +75,7 @@ components = {
 
 Understanding endpoint declarations is important in order for your bundle to be able to become available within ConductR.
 
-A bundle's component may be run either within a container or on the ConductR host. In either circumstance a port needs to be specified so that the component’s application or service may bind to that port.
+A bundle's component may be run either within a container or on the ConductR host. In either circumstance a port and a name needs to be specified so that the component’s application or service may bind to that port.
 
 Because multiple bundles may run on the same host, and that their respective components may bind to the same port, we have a means of avoiding them clash.
 
