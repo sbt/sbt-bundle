@@ -16,9 +16,8 @@ val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
 checkBundleConf := {
   val contents = IO.read(target.value / "typesafe-conductr" / "tmp" / "bundle.conf")
-  val expectedContents = """|version              = "1.0.0"
-                            |system               = "simple-test-0.1.0-SNAPSHOT"
-                            |start-status-command = "exit 0"
+  val expectedContents = """|version    = "1.0.0"
+                            |system     = "simple-test-0.1.0-SNAPSHOT"
                             |components = {
                             |  "simple-test-0.1.0-SNAPSHOT" = {
                             |    description      = "simple-test"
