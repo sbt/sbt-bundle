@@ -23,11 +23,6 @@ object Import {
       "The bundle configuration file contents"
     )
 
-    val system = SettingKey[String](
-      "bundle-system",
-      "A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0."
-    )
-
     val bundleType = SettingKey[Configuration](
       "bundle-type",
       "The type of configuration that this bundling relates to. By default Universal is used."
@@ -65,7 +60,6 @@ object SbtBundle extends AutoPlugin {
 
   override def projectSettings = Seq(
     bundleConf := getConfig.value,
-    system := (packageName in Universal).value,
     bundleType := Universal,
     startCommand := Seq((file((packageName in Universal).value) / "bin" / (executableScriptName in Universal).value).getPath),
     endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
@@ -137,7 +131,6 @@ object SbtBundle extends AutoPlugin {
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
     s"""|version    = "1.0.0"
-        |system     = "${system.value}"
         |components = {
         |  "${(packageName in Universal).value}" = {
         |    description      = "${projectInfo.value.description}"

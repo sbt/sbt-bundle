@@ -53,7 +53,6 @@ Bundles provide Typesafe ConductR with some basic knowledge about components in 
 
 ```
 version = "1.0.0"
-system  = "angular-seed-play-1.0-SNAPSHOT"
 components = {
   "angular-seed-play-1.0-SNAPSHOT" = {
     description      = "angular-seed-play"
@@ -152,6 +151,5 @@ bundleConf   | The bundle configuration file contents.
 bundleType   | The type of configuration that this bundling relates to. By default Universal is used.
 endpoints    | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000, "$name"))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
 startCommand | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
-system       | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
 
 &copy; Typesafe Inc., 2014
