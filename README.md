@@ -125,11 +125,11 @@ bind-port    | The port the bundle component’s application or service actually
 
 Endpoints are declared using an `endpoint` setting using an Map of endpoint-name/`Endpoint(protocol, bindPort, servicePort, serviceName)` pairs.
 
-The bind-port allocated to your bundle will be available as an environment variable to your component. For example, given the default settings where an endpoint named "web" is declared that has a dynamically allocated port, an environment variable named `WEB_BIND_PORT` will become available. The value of this environment variable should be used to bind to. 
+The bind-port allocated to your bundle will be available as an environment variable to your component. For example, given the default settings where an endpoint named "web" is declared that has a dynamically allocated port, an environment variable named `WEB_BIND_PORT` will become available. `WEB_BIND_IP` is also available and should be used as the interface to bind to.  
 
 As an example, and for Play applications, the following can be specified:
 
-    BundleKeys.startCommand += "-Dhttp.port=$WEB_BIND_PORT"
+    BundleKeys.startCommand += "-Dhttp.address=$WEB_BIND_IP -Dhttp.port=$WEB_BIND_PORT"
 
 ### Docker Containers and ports
 
