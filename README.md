@@ -103,13 +103,14 @@ name_SERVICE_NAME | A bundle component’s addressable service name for proxying
 name_SERVICE_PORT | The port to be used for proxying the host port to.
 name_HOST         | A bundle component’s host URL composed as $name_PROTO://$name_HOST_IP:$name_HOST_PORT
 name_HOST_PORT    | The port exposed on a bundle’s host.
+name_BIND_IP      | The interface the component should bind to.
 name_BIND_PORT    | The port the component should bind to.
 
 ## Endpoints
 
 Understanding endpoint declarations is important in order for your bundle to be able to become available within ConductR.
 
-A bundle's component may be run either within a container or on the ConductR host. In either circumstance a port and a name needs to be specified so that the component’s application or service may bind to that port.
+A bundle's component may be run either within a container or on the ConductR host. In either circumstance the bind interface (`name_BIND_IP`) and bind port (`name_BIND_PORT`) need to be used by a component in order to successfully bind and start listening for traffic.
 
 Because multiple bundles may run on the same host, and that their respective components may bind to the same port, we have a means of avoiding them clash.
 
