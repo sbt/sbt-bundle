@@ -131,7 +131,8 @@ object SbtBundle extends AutoPlugin {
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
-    val archive = Archives.makeZip(bundleTarget, (packageName in Universal).value, bundleMappings, None)
+    val name = (packageName in Universal).value
+    val archive = Archives.makeZip(bundleTarget, name, bundleMappings, Some(name))
     val archiveName = archive.getName
     val exti = archiveName.lastIndexOf('.')
     val hash = Hash.toHex(digestFile(archive))
