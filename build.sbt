@@ -21,7 +21,7 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(DoubleIndentClassDeclaration, true)
   .setPreference(PreserveDanglingCloseParenthesis, true)
 
-addSbtPlugin("com.typesafe.sbt" %% "sbt-native-packager" % "1.0.0-5f0e74fcdfa43d9d654e590694bddef526fd94ac")
+addSbtPlugin("com.typesafe.sbt" %% "sbt-native-packager" % "1.0.0-RC1")
 
 releaseSettings
 ReleaseKeys.versionBump := sbtrelease.Version.Bump.Minor

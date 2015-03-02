@@ -18,6 +18,35 @@ object Import {
 
   object BundleKeys {
 
+    // Scheduling settings
+
+    val system = SettingKey[String](
+      "conductr-system",
+      "A logical name that can be used to associate multiple bundles with each other."
+    )
+
+    val nrOfCpus = SettingKey[Double](
+      "conductr-nr-of-cpus",
+      "The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required."
+    )
+
+    val memory = SettingKey[String](
+      "conductr-memory",
+      "The amount of memory required to run the bundle. This value must a multiple of 1024 greater than 2 MB. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required."
+    )
+
+    val diskSpace = SettingKey[String](
+      "conductr-disk-space",
+      "The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required."
+    )
+
+    val roles = SettingKey[Set[String]](
+      "conductr-roles",
+      "The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles."
+    )
+
+    // General settings
+
     val bundleConf = TaskKey[String](
       "bundle-conf",
       "The bundle configuration file contents"
@@ -59,9 +88,16 @@ object SbtBundle extends AutoPlugin {
   override def trigger = AllRequirements
 
   override def projectSettings = Seq(
+    system := (packageName in Universal).value,
+    roles := Set.empty,
+
     bundleConf := getConfig.value,
     bundleType := Universal,
-    startCommand := Seq((file((packageName in Universal).value) / "bin" / (executableScriptName in Universal).value).getPath),
+    startCommand := Seq(
+      (file((packageName in Universal).value) / "bin" / (executableScriptName in Universal).value).getPath,
+      s"-Xmm=${uomToBytes(memory.value)}",
+      s"-Xmx=${uomToBytes(memory.value)}"
+    ),
     endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
@@ -77,6 +113,16 @@ object SbtBundle extends AutoPlugin {
     target in Bundle := target.value / "typesafe-conductr"
   )
 
+  /**
+   * Convert a memory/disk uom string to bytes e.g. 1m becomes 1MB in bytes.
+   */
+  def uomToBytes(units: String): Long =
+    units.takeRight(1) match {
+      case "k" | "K" => units.dropRight(1).toLong * 1024
+      case "m" | "M" => units.dropRight(1).toLong * 1024 * 1024
+      case _         => units.toLong
+    }
+
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
     val bundleTarget = (target in Bundle).value
     val configTarget = bundleTarget / "tmp"
@@ -85,7 +131,7 @@ object SbtBundle extends AutoPlugin {
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
-    val archive = Archives.makeZip(bundleTarget, (packageName in Universal).value, bundleMappings)
+    val archive = Archives.makeZip(bundleTarget, (packageName in Universal).value, bundleMappings, None)
     val archiveName = archive.getName
     val exti = archiveName.lastIndexOf('.')
     val hash = Hash.toHex(digestFile(archive))
@@ -113,7 +159,7 @@ object SbtBundle extends AutoPlugin {
     }
   }
 
-  private def formatSeq(strings: Seq[String]): String =
+  private def formatSeq(strings: Iterable[String]): String =
     strings.map(s => s""""$s"""").mkString("[", ", ", "]")
 
   private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
@@ -131,6 +177,11 @@ object SbtBundle extends AutoPlugin {
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
     s"""|version    = "1.0.0"
+        |system     = "${system.value}"
+        |nrOfCpus   = ${nrOfCpus.value}
+        |memory     = ${uomToBytes(memory.value)}
+        |diskSpace  = ${uomToBytes(diskSpace.value)}
+        |roles      = ${formatSeq(roles.value)}
         |components = {
         |  "${(packageName in Universal).value}" = {
         |    description      = "${projectInfo.value.description}"
