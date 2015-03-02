@@ -95,8 +95,8 @@ object SbtBundle extends AutoPlugin {
     bundleType := Universal,
     startCommand := Seq(
       (file((packageName in Universal).value) / "bin" / (executableScriptName in Universal).value).getPath,
-      s"-Xmm=${uomToBytes(memory.value)}",
-      s"-Xmx=${uomToBytes(memory.value)}"
+      s"-J-Xms${uomToBytes(memory.value)}",
+      s"-J-Xmx${uomToBytes(memory.value)}"
     ),
     endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
