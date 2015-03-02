@@ -31,7 +31,7 @@ checkBundleConf := {
                             |  "simple-test-0.1.0-SNAPSHOT" = {
                             |    description      = "simple-test"
                             |    file-system-type = "universal"
-                            |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-Xmm=67108864", "-Xmx=67108864"]
+                            |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
                             |    endpoints        = {
                             |      "web" = {
                             |        protocol     = "http"
