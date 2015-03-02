@@ -7,6 +7,11 @@ name := "simple-test"
 
 version := "0.1.0-SNAPSHOT"
 
+BundleKeys.nrOfCpus := 1.0
+BundleKeys.memory := "64m"
+BundleKeys.diskSpace := "10m"
+BundleKeys.roles := Set("web-server")
+
 BundleKeys.endpoints := Map(
   "web" -> Endpoint("http", 0, 9000, "/simple-test"),
   "other" -> Endpoint("http", 0, 9001, "/simple-test")
@@ -17,11 +22,16 @@ val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 checkBundleConf := {
   val contents = IO.read(target.value / "typesafe-conductr" / "tmp" / "bundle.conf")
   val expectedContents = """|version    = "1.0.0"
+                            |system     = "simple-test-0.1.0-SNAPSHOT"
+                            |nrOfCpus   = 1.0
+                            |memory     = 67108864
+                            |diskSpace  = 10485760
+                            |roles      = ["web-server"]
                             |components = {
                             |  "simple-test-0.1.0-SNAPSHOT" = {
                             |    description      = "simple-test"
                             |    file-system-type = "universal"
-                            |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test"]
+                            |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-Xmm=67108864", "-Xmx=67108864"]
                             |    endpoints        = {
                             |      "web" = {
                             |        protocol     = "http"

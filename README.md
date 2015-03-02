@@ -46,18 +46,23 @@ bundle:dist
 
 ## Typesafe ConductR Bundles
 
-Typesafe ConductR has its own bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component, but it is also possible to have multiple components per bundle. You may want to do this when there is a strong dependency between one component and another. For example, perhaps a Play 2.2 applications requires a specific version of Nginx to proxy it (not that this is a real situation, just an example).
+Typesafe ConductR has a bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component.
 
-Bundles provide Typesafe ConductR with some basic knowledge about components in a *bundle descriptor*; in particular, what is required in order to start a component. The following is an example of a `bundle.conf` descriptor:
+Bundles provide Typesafe ConductR with some basic knowledge about components in a *bundle descriptor*; in particular, what is required in order to load and run a component. The following is an example of a `bundle.conf` descriptor:
 ([Typesafe configuration](https://github.com/typesafehub/config) is used):
 
 ```
 version = "1.0.0"
+system     = "simple-test-0.1.0-SNAPSHOT"
+nrOfCpus   = 1.0
+memory     = 67108864
+diskSpace  = 10485760
+roles      = ["web-server"]
 components = {
   "angular-seed-play-1.0-SNAPSHOT" = {
     description      = "angular-seed-play"
     file-system-type = "universal"
-    start-command    = ["angular-seed-play-1.0-SNAPSHOT/bin/angular-seed-play"]
+    start-command    = ["angular-seed-play-1.0-SNAPSHOT/bin/angular-seed-play", "-Xmm=67108864", "-Xmx=67108864"]
     endpoints        = {
       web = {
         protocol     = "http"
@@ -70,47 +75,20 @@ components = {
 }
 ```
 
-## Standard Environment Variables
-The following standard environment variables are available to a bundle component at runtime:
+At a minimum, you will be required to declare the bundle's required number of cpus, its memory and diskspace for your project's build file. For a typical microservice this may look like the following:
 
-Name                   | Description
------------------------|------------
-BUNDLE_ID              | The bundle identifier associated with the bundle and its optional configuration.
-BUNDLE_SYSTEM          | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
-BUNDLE_HOST_IP         | The IP address of a bundle component’s host.
-CONDUCTR_CONTROL       | A URL for the control protocol of ConductR, composed as $CONDUCTR_CONTROL_PROTO://$CONDUCTR_CONTROL_IP:$CONDUCTR_CONTROL_PORT
-CONDUCTR_CONTROL_PROTO | The protocol of the above.
-CONDUCTR_CONTROL_IP    | The assigned ConductR’s bind IP address.
-CONDUCTR_CONTROL_PORT  | The port for the above. Inaccessible to containerized bundles such as those hosted by Docker.
-CONDUCTR_STATUS        | A URL for components to report their start status, composed as $CONDUCTR_STATUS_PROTO://$CONDUCTR_STATUS_IP:$CONDUCTR_STATUS_PORT
-CONDUCTR_STATUS_PROTO  | The protocol of the above.
-CONDUCTR_STATUS_IP     | The assigned ConductR’s bind IP address.
-CONDUCTR_STATUS_PORT   | The port for the above.
-SERVICE_LOCATOR        | A URL composed as $SERVICE_LOCATOR_PROTO://$SERVICE_LOCATOR_IP:$SERVICE_LOCATOR_PORT
-SERVICE_LOCATOR_PROTO  | The protocol of the above.
-SERVICE_LOCATOR_IP     | The interface of an http service for resolving addresses.
-SERVICE_LOCATOR_PORT   | The port of the above.
-SERVICE_PROXY_IP       | The interface of this bundle's proxy.
-CONTAINER_ENV          | A colon separated list of environment variables that will be passed through to a container. When overriding this be sure to include its original value e.g. CONTAINER_ENV=$CONTAINER_ENV:SOME_OTHER_ENV..
-
-In addition the following environment variables are declared for each component endpoint:
-
-Name              | Description
-------------------|------------
-name_PROTO        | The protocol of a bundle component’s endpoint.
-name_SERVICE      | A bundle component’s addressable service URL which will be used for proxying purposes. It is composed as $name_PROTO://$name_HOST_IP:$name_SERVICE_PORT$name_SERVICE_NAME
-name_SERVICE_NAME | A bundle component’s addressable service name for proxying purposes.
-name_SERVICE_PORT | The port to be used for proxying the host port to.
-name_HOST         | A bundle component’s host URL composed as $name_PROTO://$name_HOST_IP:$name_HOST_PORT
-name_HOST_PORT    | The port exposed on a bundle’s host.
-name_BIND_IP      | The interface the component should bind to.
-name_BIND_PORT    | The port the component should bind to.
+```scala
+BundleKeys.nrOfCpus := 1.0
+BundleKeys.memory := "64m"
+BundleKeys.diskSpace := "10m"
+BundleKeys.roles := Set("web-server")
+```
 
 ## Endpoints
 
 Understanding endpoint declarations is important in order for your bundle to be able to become available within ConductR.
 
-A bundle's component may be run either within a container or on the ConductR host. In either circumstance the bind interface (`name_BIND_IP`) and bind port (`name_BIND_PORT`) need to be used by a component in order to successfully bind and start listening for traffic.
+A bundle's component may be run either within a container or on the ConductR host. In either circumstance the bind interface and bind port provided by ConductR need to be used by a component in order to successfully bind and start listening for traffic. These are made available as `name_BIND_IP` and `name_BIND_PORT` environment variables respectively (see the "Standard Environment Variables" section toward the bottom of this document for a reference to all environment variables).
 
 Because multiple bundles may run on the same host, and that their respective components may bind to the same port, we have a means of avoiding them clash.
 
@@ -147,11 +125,52 @@ The service port is the port on which your service will be addressed to the outs
 
 The following settings are provided under the `BundleKeys` object:
 
-Name         | Description
--------------|-------------
-bundleConf   | The bundle configuration file contents.
-bundleType   | The type of configuration that this bundling relates to. By default Universal is used.
-endpoints    | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000, "$name"))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
-startCommand | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
+Name           | Description
+---------------|-------------
+bundleConf     | The bundle configuration file contents.
+bundleType     | The type of configuration that this bundling relates to. By default Universal is used.
+diskSpace      | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
+endpoints      | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000, "$name"))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
+memory         | The amount of memory required to run the bundle.
+nrOfCpus       | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
+roles          | The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles.
+system         | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0. Defaults to the package name.
+startCommand   | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
 
-&copy; Typesafe Inc., 2014
+## Standard Environment Variables
+For reference, the following standard environment variables are available to a bundle component at runtime:
+
+Name                   | Description
+-----------------------|------------
+BUNDLE_ID              | The bundle identifier associated with the bundle and its optional configuration.
+BUNDLE_SYSTEM          | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
+BUNDLE_HOST_IP         | The IP address of a bundle component’s host.
+CONDUCTR_CONTROL       | A URL for the control protocol of ConductR, composed as $CONDUCTR_CONTROL_PROTO://$CONDUCTR_CONTROL_IP:$CONDUCTR_CONTROL_PORT
+CONDUCTR_CONTROL_PROTO | The protocol of the above.
+CONDUCTR_CONTROL_IP    | The assigned ConductR’s bind IP address.
+CONDUCTR_CONTROL_PORT  | The port for the above. Inaccessible to containerized bundles such as those hosted by Docker.
+CONDUCTR_STATUS        | A URL for components to report their start status, composed as $CONDUCTR_STATUS_PROTO://$CONDUCTR_STATUS_IP:$CONDUCTR_STATUS_PORT
+CONDUCTR_STATUS_PROTO  | The protocol of the above.
+CONDUCTR_STATUS_IP     | The assigned ConductR’s bind IP address.
+CONDUCTR_STATUS_PORT   | The port for the above.
+SERVICE_LOCATOR        | A URL composed as $SERVICE_LOCATOR_PROTO://$SERVICE_LOCATOR_IP:$SERVICE_LOCATOR_PORT
+SERVICE_LOCATOR_PROTO  | The protocol of the above.
+SERVICE_LOCATOR_IP     | The interface of an http service for resolving addresses.
+SERVICE_LOCATOR_PORT   | The port of the above.
+SERVICE_PROXY_IP       | The interface of this bundle's proxy.
+CONTAINER_ENV          | A colon separated list of environment variables that will be passed through to a container. When overriding this be sure to include its original value e.g. CONTAINER_ENV=$CONTAINER_ENV:SOME_OTHER_ENV..
+
+In addition the following environment variables are declared for each component endpoint:
+
+Name              | Description
+------------------|------------
+name_PROTO        | The protocol of a bundle component’s endpoint.
+name_SERVICE      | A bundle component’s addressable service URL which will be used for proxying purposes. It is composed as $name_PROTO://$name_HOST_IP:$name_SERVICE_PORT$name_SERVICE_NAME
+name_SERVICE_NAME | A bundle component’s addressable service name for proxying purposes.
+name_SERVICE_PORT | The port to be used for proxying the host port to.
+name_HOST         | A bundle component’s host URL composed as $name_PROTO://$name_HOST_IP:$name_HOST_PORT
+name_HOST_PORT    | The port exposed on a bundle’s host.
+name_BIND_IP      | The interface the component should bind to.
+name_BIND_PORT    | The port the component should bind to.
+
+&copy; Typesafe Inc., 2014-2015
