@@ -5,6 +5,8 @@ sbtPlugin := true
 organization := "com.typesafe.sbt"
 name := "sbt-bundle"
 
+libraryDependencies += "com.typesafe.akka" %% "akka-http-core-experimental" % "1.0-M4"
+
 scalaVersion := "2.10.4"
 scalacOptions ++= List(
   "-unchecked",
@@ -21,7 +23,7 @@ ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(DoubleIndentClassDeclaration, true)
   .setPreference(PreserveDanglingCloseParenthesis, true)
 
-addSbtPlugin("com.typesafe.sbt" %% "sbt-native-packager" % "1.0.0-RC1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.0.0-RC1")
 
 releaseSettings
 ReleaseKeys.versionBump := sbtrelease.Version.Bump.Minor
