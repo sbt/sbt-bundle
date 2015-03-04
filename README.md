@@ -62,7 +62,7 @@ components = {
   "angular-seed-play-1.0-SNAPSHOT" = {
     description      = "angular-seed-play"
     file-system-type = "universal"
-    start-command    = ["angular-seed-play-1.0-SNAPSHOT/bin/angular-seed-play", "-Xmm=67108864", "-Xmx=67108864"]
+    start-command    = ["angular-seed-play-1.0-SNAPSHOT/bin/angular-seed-play", "-Xms=67108864", "-Xmx=67108864"]
     endpoints        = {
       web = {
         protocol     = "http"
@@ -75,14 +75,18 @@ components = {
 }
 ```
 
-At a minimum, you will be required to declare the bundle's required number of cpus, its memory and diskspace for your project's build file. For a typical microservice this may look like the following:
+At a minimum, you will be required to declare the bundle's required number of cpus, its memory and disk space for your project's build file. For a typical microservice this may look like the following:
 
 ```scala
+import ByteConversions._
+
 BundleKeys.nrOfCpus := 1.0
-BundleKeys.memory := "64m"
-BundleKeys.diskSpace := "10m"
+BundleKeys.memory := 64.MiB
+BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
 ```
+
+(You'll note that the international standards for supporting [binary prefixes](http://en.wikipedia.org/wiki/Binary_prefix), as in `MiB`, is supported).
 
 ## Endpoints
 

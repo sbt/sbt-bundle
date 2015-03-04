@@ -21,27 +21,27 @@ object Import {
     // Scheduling settings
 
     val system = SettingKey[String](
-      "conductr-system",
+      "bundle-system",
       "A logical name that can be used to associate multiple bundles with each other."
     )
 
     val nrOfCpus = SettingKey[Double](
-      "conductr-nr-of-cpus",
+      "bundle-nr-of-cpus",
       "The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required."
     )
 
-    val memory = SettingKey[String](
-      "conductr-memory",
+    val memory = SettingKey[Bytes](
+      "bundle-memory",
       "The amount of memory required to run the bundle. This value must a multiple of 1024 greater than 2 MB. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required."
     )
 
-    val diskSpace = SettingKey[String](
-      "conductr-disk-space",
+    val diskSpace = SettingKey[Bytes](
+      "bundle-disk-space",
       "The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required."
     )
 
     val roles = SettingKey[Set[String]](
-      "conductr-roles",
+      "bundle-roles",
       "The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles."
     )
 
@@ -66,6 +66,32 @@ object Import {
       "bundle-endpoints",
       """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, 9000, "$name")) where the service name is the name of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example."""
     )
+  }
+
+  case class Bytes(underlying: Long) extends AnyVal {
+    def round1k: Bytes =
+      Bytes((Math.max(underlying - 1, 0) >> 10 << 10) + 1024)
+  }
+
+  object ByteConversions {
+    implicit class IntOps(value: Int) {
+      def KB: Bytes =
+        Bytes(value * 1000L)
+      def MB: Bytes =
+        Bytes(value * 1000000L)
+      def GB: Bytes =
+        Bytes(value * 1000000000L)
+      def TB: Bytes =
+        Bytes(value * 1000000000000L)
+      def KiB: Bytes =
+        Bytes(value.toLong << 10)
+      def MiB: Bytes =
+        Bytes(value.toLong << 20)
+      def GiB: Bytes =
+        Bytes(value.toLong << 30)
+      def TiB: Bytes =
+        Bytes(value.toLong << 40)
+    }
   }
 
   val Bundle = config("bundle") extend Universal
@@ -95,8 +121,8 @@ object SbtBundle extends AutoPlugin {
     bundleType := Universal,
     startCommand := Seq(
       (file((packageName in Universal).value) / "bin" / (executableScriptName in Universal).value).getPath,
-      s"-J-Xms${uomToBytes(memory.value)}",
-      s"-J-Xmx${uomToBytes(memory.value)}"
+      s"-J-Xms${memory.value.round1k.underlying}",
+      s"-J-Xmx${memory.value.round1k.underlying}"
     ),
     endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
@@ -112,16 +138,6 @@ object SbtBundle extends AutoPlugin {
     NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
     target in Bundle := target.value / "typesafe-conductr"
   )
-
-  /**
-   * Convert a memory/disk uom string to bytes e.g. 1m becomes 1MB in bytes.
-   */
-  def uomToBytes(units: String): Long =
-    units.takeRight(1) match {
-      case "k" | "K" => units.dropRight(1).toLong * 1024
-      case "m" | "M" => units.dropRight(1).toLong * 1024 * 1024
-      case _         => units.toLong
-    }
 
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
     val bundleTarget = (target in Bundle).value
@@ -180,8 +196,8 @@ object SbtBundle extends AutoPlugin {
     s"""|version    = "1.0.0"
         |system     = "${system.value}"
         |nrOfCpus   = ${nrOfCpus.value}
-        |memory     = ${uomToBytes(memory.value)}
-        |diskSpace  = ${uomToBytes(diskSpace.value)}
+        |memory     = ${memory.value.underlying}
+        |diskSpace  = ${diskSpace.value.underlying}
         |roles      = ${formatSeq(roles.value)}
         |components = {
         |  "${(packageName in Universal).value}" = {
