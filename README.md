@@ -13,7 +13,7 @@ The plugin will take any package that you have presently configured and wrap it 
 Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.15.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.16.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
@@ -64,11 +64,10 @@ components = {
     file-system-type = "universal"
     start-command    = ["angular-seed-play-1.0-SNAPSHOT/bin/angular-seed-play", "-Xms=67108864", "-Xmx=67108864"]
     endpoints        = {
-      web = {
-        protocol     = "http"
-        bind-port    = 0
-        service-port = 9000
-        service-name = "/angular-seed-play"
+      "angular-seed-play" = {
+        protocol  = "http"
+        bind-port = 0
+        services  = ["http:/angular-seed-play"]
       }
     }
   }
@@ -105,7 +104,7 @@ service-name | A name to be used to address the service. In the case of http pro
 host-port    | This is not declared but is dynamically allocated if bundle is running in a container. Otherwise it has the same value as bind-port.
 bind-port    | The port the bundle component’s application or service actually binds to. When this is 0 it will be dynamically allocated (which is the default).
 
-Endpoints are declared using an `endpoint` setting using an Map of endpoint-name/`Endpoint(protocol, bindPort, servicePort, serviceName)` pairs.
+Endpoints are declared using an `endpoint` setting using a Map of endpoint-name/`Endpoint(protocol, bindPort, services)` pairs.
 
 The bind-port allocated to your bundle will be available as an environment variable to your component. For example, given the default settings where an endpoint named "web" is declared that has a dynamically allocated port, an environment variable named `WEB_BIND_PORT` will become available. `WEB_BIND_IP` is also available and should be used as the interface to bind to.  
 
@@ -115,15 +114,15 @@ As an example, and for Play applications, the following can be specified:
 
 ### Docker Containers and ports
 
-When your component will runs within a container you may alternatively declare the bind port to be whatever it may be. Taking our Play example again, we can set the bind port with no problem of it clashing with another port given that it is run within a container:
+When your component will run within a container you may alternatively declare the bind port to be whatever it may be. Taking our Play example again, we can set the bind port with no problem of it clashing with another port given that it is run within a container:
 
-    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, 9000))
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, ...))
 
 ### Service ports
 
-The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used to resolve `/myservices/someservice` on:
+The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used to resolve `/myservice` on:
 
-    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, 80, "/myservices/someservice"))
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, Set(Uri("http:/myservice"))))
 
 ## Settings
 
@@ -169,9 +168,6 @@ In addition the following environment variables are declared for each component 
 Name              | Description
 ------------------|------------
 name_PROTO        | The protocol of a bundle component’s endpoint.
-name_SERVICE      | A bundle component’s addressable service URL which will be used for proxying purposes. It is composed as $name_PROTO://$name_HOST_IP:$name_SERVICE_PORT$name_SERVICE_NAME
-name_SERVICE_NAME | A bundle component’s addressable service name for proxying purposes.
-name_SERVICE_PORT | The port to be used for proxying the host port to.
 name_HOST         | A bundle component’s host URL composed as $name_PROTO://$name_HOST_IP:$name_HOST_PORT
 name_HOST_PORT    | The port exposed on a bundle’s host.
 name_BIND_IP      | The interface the component should bind to.
