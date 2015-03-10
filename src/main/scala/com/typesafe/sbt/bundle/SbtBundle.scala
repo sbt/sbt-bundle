@@ -1,11 +1,11 @@
 package com.typesafe.sbt.bundle
 
+import akka.http.model.Uri
+import com.typesafe.sbt.SbtNativePackager
+import com.typesafe.sbt.packager.universal.Archives
 import java.io.{ FileInputStream, BufferedInputStream }
 import java.nio.charset.Charset
 import java.security.MessageDigest
-
-import com.typesafe.sbt.SbtNativePackager
-import com.typesafe.sbt.packager.universal.Archives
 import sbt._
 import sbt.Keys._
 import SbtNativePackager.Universal
@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 
 object Import {
 
-  case class Endpoint(protocol: String, bindPort: Int, servicePort: Int, serviceName: String)
+  case class Endpoint(protocol: String, bindPort: Int, services: Set[Uri])
 
   object BundleKeys {
 
@@ -124,7 +124,7 @@ object SbtBundle extends AutoPlugin {
       s"-J-Xms${memory.value.round1k.underlying}",
       s"-J-Xmx${memory.value.round1k.underlying}"
     ),
-    endpoints := Map("web" -> Endpoint("http", 0, 9000, name.value)),
+    endpoints := Map("web" -> Endpoint("http", 0, Set(Uri(s"http://:9000/${name.value}")))),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
@@ -182,12 +182,11 @@ object SbtBundle extends AutoPlugin {
   private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
-        (label, Endpoint(protocol, bindPort, servicePort, serviceName)) <- endpoints
+        (label, Endpoint(protocol, bindPort, services)) <- endpoints
       } yield s"""|      "$label" = {
-                  |        protocol     = "$protocol"
-                  |        bind-port    = $bindPort
-                  |        service-port = $servicePort
-                  |        service-name = "$serviceName"
+                  |        protocol  = "$protocol"
+                  |        bind-port = $bindPort
+                  |        services  = [${services.mkString("\"", "\", \"", "\"")}]
                   |      }""".stripMargin
     formatted.mkString(f"{%n", f",%n", f"%n    }")
   }

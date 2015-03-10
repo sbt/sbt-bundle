@@ -1,5 +1,7 @@
-import org.scalatest.Matchers._
 import ByteConversions._
+import com.typesafe.sbt.bundle.SbtBundle._
+import akka.http.model.Uri
+import org.scalatest.Matchers._
 
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
@@ -13,8 +15,8 @@ BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
 
 BundleKeys.endpoints := Map(
-  "web" -> Endpoint("http", 0, 9000, "/simple-test"),
-  "other" -> Endpoint("http", 0, 9001, "/simple-test")
+  "web" -> Endpoint("http", 0, Set(Uri("http://:9000/simple-test"))),
+  "other" -> Endpoint("http", 0, Set(Uri("http://:9001/simple-test")))
 )
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
@@ -34,16 +36,14 @@ checkBundleConf := {
                             |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
                             |    endpoints        = {
                             |      "web" = {
-                            |        protocol     = "http"
-                            |        bind-port    = 0
-                            |        service-port = 9000
-                            |        service-name = "/simple-test"
+                            |        protocol  = "http"
+                            |        bind-port = 0
+                            |        services  = ["http://:9000/simple-test"]
                             |      },
                             |      "other" = {
-                            |        protocol     = "http"
-                            |        bind-port    = 0
-                            |        service-port = 9001
-                            |        service-name = "/simple-test"
+                            |        protocol  = "http"
+                            |        bind-port = 0
+                            |        services  = ["http://:9001/simple-test"]
                             |      }
                             |    }
                             |  }
