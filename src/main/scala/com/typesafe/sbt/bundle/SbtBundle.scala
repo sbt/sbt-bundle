@@ -1,6 +1,5 @@
 package com.typesafe.sbt.bundle
 
-import akka.http.model.Uri
 import com.typesafe.sbt.SbtNativePackager
 import com.typesafe.sbt.packager.universal.Archives
 import java.io.{ FileInputStream, BufferedInputStream }
@@ -14,7 +13,7 @@ import scala.annotation.tailrec
 
 object Import {
 
-  case class Endpoint(protocol: String, bindPort: Int, services: Set[Uri])
+  case class Endpoint(protocol: String, bindPort: Int, services: Set[URI])
 
   object BundleKeys {
 
@@ -94,6 +93,11 @@ object Import {
     }
   }
 
+  object URI {
+    def apply(uri: String): URI =
+      new sbt.URI(uri)
+  }
+
   val Bundle = config("bundle") extend Universal
 }
 
@@ -124,7 +128,7 @@ object SbtBundle extends AutoPlugin {
       s"-J-Xms${memory.value.round1k.underlying}",
       s"-J-Xmx${memory.value.round1k.underlying}"
     ),
-    endpoints := Map("web" -> Endpoint("http", 0, Set(Uri(s"http://:9000/${name.value}")))),
+    endpoints := Map("web" -> Endpoint("http", 0, Set(URI(s"http://:9000/${name.value}")))),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)

@@ -15,8 +15,8 @@ BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
 
 BundleKeys.endpoints := Map(
-  "web" -> Endpoint("http", 0, Set(Uri("http://:9000/simple-test"))),
-  "other" -> Endpoint("http", 0, Set(Uri("http://:9001/simple-test")))
+  "web" -> Endpoint("http", 0, Set(URI("http://:9000/simple-test"))),
+  "other" -> Endpoint("http", 0, Set(URI("http://:9001/simple-test")))
 )
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
