@@ -143,32 +143,32 @@ startCommand   | Command line args required to start the component. Paths are ex
 ## Standard Environment Variables
 For reference, the following standard environment variables are available to a bundle component at runtime:
 
-Name                   | Description
------------------------|------------
-BUNDLE_ID              | The bundle identifier associated with the bundle and its optional configuration.
-BUNDLE_SYSTEM          | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
-BUNDLE_HOST_IP         | The IP address of a bundle component’s host.
-CONDUCTR_CONTROL       | A URL for the control protocol of ConductR, composed as $CONDUCTR_CONTROL_PROTO://$CONDUCTR_CONTROL_IP:$CONDUCTR_CONTROL_PORT
-CONDUCTR_CONTROL_PROTO | The protocol of the above.
-CONDUCTR_CONTROL_IP    | The assigned ConductR’s bind IP address.
-CONDUCTR_CONTROL_PORT  | The port for the above. Inaccessible to containerized bundles such as those hosted by Docker.
-CONDUCTR_STATUS        | A URL for components to report their start status, composed as $CONDUCTR_STATUS_PROTO://$CONDUCTR_STATUS_IP:$CONDUCTR_STATUS_PORT
-CONDUCTR_STATUS_PROTO  | The protocol of the above.
-CONDUCTR_STATUS_IP     | The assigned ConductR’s bind IP address.
-CONDUCTR_STATUS_PORT   | The port for the above.
-SERVICE_LOCATOR        | A URL composed as $SERVICE_LOCATOR_PROTO://$SERVICE_LOCATOR_IP:$SERVICE_LOCATOR_PORT
-SERVICE_LOCATOR_PROTO  | The protocol of the above.
-SERVICE_LOCATOR_IP     | The interface of an http service for resolving addresses.
-SERVICE_LOCATOR_PORT   | The port of the above.
-SERVICE_PROXY_IP       | The interface of this bundle's proxy.
-CONTAINER_ENV          | A colon separated list of environment variables that will be passed through to a container. When overriding this be sure to include its original value e.g. CONTAINER_ENV=$CONTAINER_ENV:SOME_OTHER_ENV..
+Name                      | Description
+--------------------------|------------
+BUNDLE_ID                 | The bundle identifier associated with the bundle and its optional configuration.
+BUNDLE_SYSTEM             | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0.
+BUNDLE_HOST_IP            | The IP address of a bundle component’s host.
+CONDUCTR_CONTROL          | A URL for the control protocol of ConductR, composed as $CONDUCTR_CONTROL_PROTOCOL://$CONDUCTR_CONTROL_IP:$CONDUCTR_CONTROL_PORT
+CONDUCTR_CONTROL_PROTOCOL | The protocol of the above.
+CONDUCTR_CONTROL_IP       | The assigned ConductR’s bind IP address.
+CONDUCTR_CONTROL_PORT     | The port for the above. Inaccessible to containerized bundles such as those hosted by Docker.
+CONDUCTR_STATUS           | A URL for components to report their start status, composed as $CONDUCTR_STATUS_PROTOCOL://$CONDUCTR_STATUS_IP:$CONDUCTR_STATUS_PORT
+CONDUCTR_STATUS_PROTOCOL  | The protocol of the above.
+CONDUCTR_STATUS_IP        | The assigned ConductR’s bind IP address.
+CONDUCTR_STATUS_PORT      | The port for the above.
+SERVICE_LOCATOR           | A URL composed as $SERVICE_LOCATOR_PROTOCOL://$SERVICE_LOCATOR_IP:$SERVICE_LOCATOR_PORT
+SERVICE_LOCATOR_PROTOCOL  | The protocol of the above.
+SERVICE_LOCATOR_IP        | The interface of an http service for resolving addresses.
+SERVICE_LOCATOR_PORT      | The port of the above.
+SERVICE_PROXY_IP          | The interface of this bundle's proxy.
+CONTAINER_ENV             | A colon separated list of environment variables that will be passed through to a container. When overriding this be sure to include its original value e.g. CONTAINER_ENV=$CONTAINER_ENV:SOME_OTHER_ENV..
 
 In addition the following environment variables are declared for each component endpoint:
 
 Name              | Description
 ------------------|------------
-name_PROTO        | The protocol of a bundle component’s endpoint.
-name_HOST         | A bundle component’s host URL composed as $name_PROTO://$name_HOST_IP:$name_HOST_PORT
+name_PROTOCOL     | The protocol of a bundle component’s endpoint.
+name_HOST         | A bundle component’s host URL composed as $name_PROTOCOL://$name_HOST_IP:$name_HOST_PORT
 name_HOST_PORT    | The port exposed on a bundle’s host.
 name_BIND_IP      | The interface the component should bind to.
 name_BIND_PORT    | The port the component should bind to.
