@@ -14,16 +14,14 @@ BundleKeys.memory := 64.MiB
 BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
 
-BundleKeys.endpoints := Map(
-  "web" -> Endpoint("http", 0, Set(URI("http://:9000/simple-test"))),
-  "other" -> Endpoint("http", 0, Set(URI("http://:9001/simple-test")))
-)
+BundleKeys.endpoints += "other" -> Endpoint("http", 0, Set(URI("http://:9001/simple-test")))
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
 checkBundleConf := {
   val contents = IO.read(target.value / "typesafe-conductr" / "tmp" / "bundle.conf")
   val expectedContents = """|version    = "1.0.0"
+                            |name       = "simple-test"
                             |system     = "simple-test-0.1.0-SNAPSHOT"
                             |nrOfCpus   = 1.0
                             |memory     = 67108864
@@ -38,7 +36,7 @@ checkBundleConf := {
                             |      "web" = {
                             |        protocol  = "http"
                             |        bind-port = 0
-                            |        services  = ["http://:9000/simple-test"]
+                            |        services  = ["http://:9000"]
                             |      },
                             |      "other" = {
                             |        protocol  = "http"

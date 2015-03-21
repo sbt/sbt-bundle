@@ -52,7 +52,8 @@ Bundles provide Typesafe ConductR with some basic knowledge about components in 
 ([Typesafe configuration](https://github.com/typesafehub/config) is used):
 
 ```
-version = "1.0.0"
+version    = "1.0.0"
+name       = "simple-test"
 system     = "simple-test-0.1.0-SNAPSHOT"
 nrOfCpus   = 1.0
 memory     = 67108864
@@ -67,7 +68,7 @@ components = {
       "angular-seed-play" = {
         protocol  = "http"
         bind-port = 0
-        services  = ["http:/angular-seed-play"]
+        services  = ["http://:9000"]
       }
     }
   }
@@ -120,9 +121,9 @@ When your component will run within a container you may alternatively declare th
 
 ### Service ports
 
-The service port is the port on which your service will be addressed to the outside world on. Extending last example, if port 80 is to be used to provide your services and then the following expression can be used to resolve `/myservice` on:
+The service port is the port on which your service will be addressed to the outside world on. For example, if port 80 is to be used to provide your services and then the following expression can be used to resolve `/myservice` on:
 
-    BundleKeys.endpoints := Map("web" -> Endpoint("http", 9000, Set(URI("http:/myservice"))))
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http:/myservice"))))
 
 ## Settings
 
