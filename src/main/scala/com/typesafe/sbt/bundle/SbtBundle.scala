@@ -128,7 +128,7 @@ object SbtBundle extends AutoPlugin {
       s"-J-Xms${memory.value.round1k.underlying}",
       s"-J-Xmx${memory.value.round1k.underlying}"
     ),
-    endpoints := Map("web" -> Endpoint("http", 0, Set(URI(s"http://:9000/${name.value}")))),
+    endpoints := Map("web" -> Endpoint("http", 0, Set(URI(s"http://:9000")))),
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
@@ -197,6 +197,7 @@ object SbtBundle extends AutoPlugin {
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
     s"""|version    = "1.0.0"
+        |name       = "${name.value}"
         |system     = "${system.value}"
         |nrOfCpus   = ${nrOfCpus.value}
         |memory     = ${memory.value.underlying}
