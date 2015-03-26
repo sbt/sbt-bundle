@@ -134,7 +134,7 @@ Name           | Description
 bundleConf     | The bundle configuration file contents.
 bundleType     | The type of configuration that this bundling relates to. By default Universal is used.
 diskSpace      | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
-endpoints      | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, 9000, "$name"))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
+endpoints      | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, Set(URI(s"http://:9000"))))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
 memory         | The amount of memory required to run the bundle.
 nrOfCpus       | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
 roles          | The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles.
