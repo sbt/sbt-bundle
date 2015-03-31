@@ -5,7 +5,7 @@ sbtPlugin := true
 organization := "com.typesafe.sbt"
 name := "sbt-bundle"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-http-core-experimental" % "1.0-M4"
+libraryDependencies += "com.typesafe.akka" %% "akka-http-core-experimental" % "1.0-M5"
 
 scalaVersion := "2.10.4"
 scalacOptions ++= List(
