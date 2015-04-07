@@ -13,7 +13,7 @@ The plugin will take any package that you have presently configured and wrap it 
 Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.19.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.19.1")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
@@ -121,9 +121,9 @@ When your component will run within a container you may alternatively declare th
 
 ### Service ports
 
-The service port is the port on which your service will be addressed to the outside world on. For example, if port 80 is to be used to provide your services and then the following expression can be used to resolve `/myservice` on:
+The services define the protocol, port, and/or path under which your service will be addressed to the outside world on. For example, if http and port 80 are to be used to provide your services and then the following expression can be used to resolve `/myservice` on:
 
-    BundleKeys.endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http:/myservice"))))
+    BundleKeys.endpoints := Map("web" -> Endpoint("http", services = Set(URI("http:/myservice"))))
 
 ## Settings
 
@@ -134,7 +134,7 @@ Name           | Description
 bundleConf     | The bundle configuration file contents.
 bundleType     | The type of configuration that this bundling relates to. By default Universal is used.
 diskSpace      | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
-endpoints      | Declares endpoints using an `Endpoint(protocol, bindPort, servicePort, serviceName)` structure. The default is `Map("web" -> Endpoint("http", 0, Set(URI(s"http://:9000"))))` where the service name is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
+endpoints      | Declares endpoints using an `Endpoint(protocol, bindPort, services)` structure. The default is `Map("web" -> Endpoint("http", services = Set(URI(s"http://:9000"))))` where the key is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
 memory         | The amount of memory required to run the bundle.
 nrOfCpus       | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
 roles          | The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles.
