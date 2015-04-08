@@ -15,11 +15,11 @@ object Import {
 
   /**
    * Represents a service endpoint.
-   * @param protocol the service protocol, e.g. "http"
+   * @param bindProtocol the protocol to bind for this endpoint, e.g. "http"
    * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
    * @param services the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
    */
-  case class Endpoint(protocol: String, bindPort: Int = 0, services: Set[URI] = Set.empty)
+  case class Endpoint(bindProtocol: String, bindPort: Int = 0, services: Set[URI] = Set.empty)
 
   object BundleKeys {
 
@@ -192,9 +192,9 @@ object SbtBundle extends AutoPlugin {
   private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
-        (label, Endpoint(protocol, bindPort, services)) <- endpoints
+        (label, Endpoint(bindProtocol, bindPort, services)) <- endpoints
       } yield s"""|      "$label" = {
-                  |        protocol  = "$protocol"
+                  |        bind-protocol  = "$bindProtocol"
                   |        bind-port = $bindPort
                   |        services  = [${services.mkString("\"", "\", \"", "\"")}]
                   |      }""".stripMargin

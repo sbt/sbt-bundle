@@ -34,12 +34,12 @@ checkBundleConf := {
                             |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
                             |    endpoints        = {
                             |      "web" = {
-                            |        protocol  = "http"
+                            |        bind-protocol  = "http"
                             |        bind-port = 0
                             |        services  = ["http://:9000"]
                             |      },
                             |      "other" = {
-                            |        protocol  = "http"
+                            |        bind-protocol  = "http"
                             |        bind-port = 0
                             |        services  = ["http://:9001/simple-test"]
                             |      }
