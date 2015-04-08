@@ -13,7 +13,13 @@ import scala.annotation.tailrec
 
 object Import {
 
-  case class Endpoint(protocol: String, bindPort: Int, services: Set[URI])
+  /**
+   * Represents a service endpoint.
+   * @param protocol the service protocol, e.g. "http"
+   * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
+   * @param services the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
+   */
+  case class Endpoint(protocol: String, bindPort: Int = 0, services: Set[URI] = Set.empty)
 
   object BundleKeys {
 
