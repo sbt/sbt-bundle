@@ -1,6 +1,5 @@
 import ByteConversions._
 import com.typesafe.sbt.bundle.SbtBundle._
-import akka.http.model.Uri
 import org.scalatest.Matchers._
 
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
@@ -19,7 +18,7 @@ BundleKeys.endpoints += "other" -> Endpoint("http", 0, Set(URI("http://:9001/sim
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
 checkBundleConf := {
-  val contents = IO.read(target.value / "typesafe-conductr" / "tmp" / "bundle.conf")
+  val contents = IO.read(target.value / "bundle" / "tmp" / "bundle.conf")
   val expectedContents = """|version    = "1.0.0"
                             |name       = "simple-test"
                             |system     = "simple-test-0.1.0-SNAPSHOT"

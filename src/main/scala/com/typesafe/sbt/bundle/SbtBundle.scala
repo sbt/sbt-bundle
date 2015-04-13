@@ -146,7 +146,7 @@ object SbtBundle extends AutoPlugin {
       }.value
     }.value,
     NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
-    target in Bundle := target.value / "typesafe-conductr"
+    target in Bundle := target.value / "bundle"
   )
 
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
@@ -165,6 +165,7 @@ object SbtBundle extends AutoPlugin {
     val hashName = archiveName.take(exti) + "-" + hash + archiveName.drop(exti)
     val hashArchive = archive.getParentFile / hashName
     IO.move(archive, hashArchive)
+    streams.value.log.info(s"Bundle has been created: $hashArchive")
     hashArchive
   }
 

@@ -1,4 +1,4 @@
-# Typesafe ConductR Bundle Plugin
+# ConductR Bundle Plugin
 
 [![Build Status](https://api.travis-ci.org/sbt/sbt-bundle.png?branch=master)](https://travis-ci.org/sbt/sbt-bundle)
 
@@ -44,11 +44,11 @@ Finally, produce a bundle:
 bundle:dist
 ```
 
-## Typesafe ConductR Bundles
+## ConductR Bundles
 
-Typesafe ConductR has a bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component.
+ConductR has a bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component.
 
-Bundles provide Typesafe ConductR with some basic knowledge about components in a *bundle descriptor*; in particular, what is required in order to load and run a component. The following is an example of a `bundle.conf` descriptor:
+Bundles provide ConductR with some basic knowledge about components in a *bundle descriptor*; in particular, what is required in order to load and run a component. The following is an example of a `bundle.conf` descriptor:
 ([Typesafe configuration](https://github.com/typesafehub/config) is used):
 
 ```
@@ -105,7 +105,7 @@ service-name | A name to be used to address the service. In the case of http pro
 host-port    | This is not declared but is dynamically allocated if bundle is running in a container. Otherwise it has the same value as bind-port.
 bind-port    | The port the bundle component’s application or service actually binds to. When this is 0 it will be dynamically allocated (which is the default).
 
-Endpoints are declared using an `endpoint` setting using a Map of endpoint-name/`Endpoint(protocol, bindPort, services)` pairs.
+Endpoints are declared using an `endpoint` setting using a Map of endpoint-name/`Endpoint(bindProtocol, bindPort, services)` pairs.
 
 The bind-port allocated to your bundle will be available as an environment variable to your component. For example, given the default settings where an endpoint named "web" is declared that has a dynamically allocated port, an environment variable named `WEB_BIND_PORT` will become available. `WEB_BIND_IP` is also available and should be used as the interface to bind to.  
 
