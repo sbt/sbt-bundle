@@ -13,7 +13,7 @@ The plugin will take any package that you have presently configured and wrap it 
 Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.20.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "0.21.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
@@ -166,12 +166,17 @@ CONTAINER_ENV             | A colon separated list of environment variables that
 
 In addition the following environment variables are declared for each component endpoint:
 
-Name              | Description
-------------------|------------
-name_PROTOCOL     | The protocol of a bundle component’s endpoint.
-name_HOST         | A bundle component’s host URL composed as $name_PROTOCOL://$name_HOST_IP:$name_HOST_PORT
-name_HOST_PORT    | The port exposed on a bundle’s host.
-name_BIND_IP      | The interface the component should bind to.
-name_BIND_PORT    | The port the component should bind to.
+Name                 | Description
+---------------------|------------
+name_PROTOCOL        | The protocol of a bundle component’s endpoint.
+name_HOST            | A bundle component’s host URL composed as $name_PROTOCOL://$name_HOST_IP:$name_HOST_PORT
+name_HOST_PORT       | The port exposed on a bundle’s host.
+name_BIND_IP         | The interface the component should bind to.
+name_BIND_PORT       | The port the component should bind to.
+name_OTHER_PROTOCOLS | Any other protocols shared by this bundle with the same endpoint name and system
+name_OTHER_IPS       | Any other interfaces shared by this bundle with the same endpoint name and system
+name_OTHER_PORTS     | Any other ports shared by this bundle with the same endpoint name and system
+
+The _OTHER_ variables above are `:` separated lists with each element correlating to each other e.g. the second element of `name_OTHER_IPS` will correspond to the second element of `name_OTHER_PORTS`. If the list is empty then any bundle component may assume that it is the first bundle of the associated system to start and no other will start until this one has signalled that it is ready. Otherwise these _OTHER_ variables can be used as "seeds" for other nodes in order to establish clusters.
 
 &copy; Typesafe Inc., 2014-2015
