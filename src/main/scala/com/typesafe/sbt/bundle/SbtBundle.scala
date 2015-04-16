@@ -197,7 +197,7 @@ object SbtBundle extends AutoPlugin {
       } yield s"""|      "$label" = {
                   |        bind-protocol  = "$bindProtocol"
                   |        bind-port = $bindPort
-                  |        services  = [${services.mkString("\"", "\", \"", "\"")}]
+                  |        services  = ${formatSeq(services.map(_.toString))}
                   |      }""".stripMargin
     formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
