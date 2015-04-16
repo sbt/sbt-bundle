@@ -14,6 +14,7 @@ BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
 
 BundleKeys.endpoints += "other" -> Endpoint("http", 0, Set(URI("http://:9001/simple-test")))
+BundleKeys.endpoints += "akka-remote" -> Endpoint("tcp")
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
@@ -41,6 +42,11 @@ checkBundleConf := {
                             |        bind-protocol  = "http"
                             |        bind-port = 0
                             |        services  = ["http://:9001/simple-test"]
+                            |      },
+                            |      "akka-remote" = {
+                            |        bind-protocol  = "tcp"
+                            |        bind-port = 0
+                            |        services  = []
                             |      }
                             |    }
                             |  }
