@@ -50,6 +50,11 @@ object Import {
       "The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles."
     )
 
+    val configurationPath = SettingKey[String](
+      "configuration-path",
+      "The Location of the additional configuration to use"
+    )
+
     // General settings
 
     val bundleConf = TaskKey[String](
@@ -105,6 +110,8 @@ object Import {
   }
 
   val Bundle = config("bundle") extend Universal
+
+  val Configuration = config("config")
 }
 
 object SbtBundle extends AutoPlugin {
@@ -145,8 +152,21 @@ object SbtBundle extends AutoPlugin {
         stageBundle(bundleType.value)
       }.value
     }.value,
+    NativePackagerKeys.dist in Configuration := Def.taskDyn {
+      Def.task {
+        createConfiguration()
+      }.value
+    }.value,
+    NativePackagerKeys.stage in Configuration := Def.taskDyn {
+      Def.task {
+        stageConfiguration
+      }.value
+    }.value,
     NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
-    target in Bundle := target.value / "bundle"
+    NativePackagerKeys.stagingDirectory in Configuration := (target in Configuration).value / "stage",
+    target in Bundle := target.value / "bundle",
+    target in Configuration := target.value / "configuration",
+    configurationPath := baseDirectory.value.getAbsolutePath + "/src/main/configuration/"
   )
 
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
@@ -166,6 +186,40 @@ object SbtBundle extends AutoPlugin {
     val hashArchive = archive.getParentFile / hashName
     IO.move(archive, hashArchive)
     streams.value.log.info(s"Bundle has been created: $hashArchive")
+    hashArchive
+  }
+
+  /**
+   * TODO this is hardcoded to create zip for "frontend" found at src/main/configuration/frontend
+   * TODO maybe this task finds all configurations and creates packages for them?
+   * TODO maybe the user has a way to specify a particular configuration?
+   */
+  private def createConfiguration(): Def.Initialize[Task[File]] = Def.task {
+
+    val name = "frontend"
+
+    val bundleTarget = (target in Configuration).value
+
+    val configurationTarget = (NativePackagerKeys.stagingDirectory in Configuration).value / "frontend"
+    val srcDir = new File(configurationPath.value + "/" + "frontend")
+    IO.createDirectory(configurationTarget)
+    IO.copyDirectory(srcDir, configurationTarget, true, true)
+
+    def relParent(p: (File, String)): (File, String) =
+      (p._1, "frontend" + java.io.File.separator + p._2)
+
+    val configChildren: List[File] = configurationTarget.listFiles().toList
+
+    val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
+
+    val archive = Archives.makeZip(bundleTarget, name, bundleMappings, None)
+    val archiveName = archive.getName
+    val exti = archiveName.lastIndexOf('.')
+    val hash = Hash.toHex(digestFile(archive))
+    val hashName = archiveName.take(exti) + "-" + hash + archiveName.drop(exti)
+    val hashArchive = archive.getParentFile / hashName
+    IO.move(archive, hashArchive)
+    streams.value.log.info(s"Configuration Bundle has been created: $hashArchive")
     hashArchive
   }
 
@@ -227,6 +281,19 @@ object SbtBundle extends AutoPlugin {
     val componentTarget = bundleTarget / (packageName in Universal).value
     IO.copy((mappings in bundleTypeConfig).value.map(p => (p._1, componentTarget / p._2)))
     componentTarget
+  }
+
+  private def stageConfiguration(): Def.Initialize[Task[File]] = Def.task {
+
+    // TODO this is currently hardcoded to 'frontend'
+    val configurationTarget = (NativePackagerKeys.stagingDirectory in Configuration).value / "frontend"
+    val srcDir = new File(configurationPath.value + "/" + "frontend")
+    IO.createDirectory(configurationTarget)
+    IO.copyDirectory(srcDir, configurationTarget, true, true)
+
+    println(s"stageConfiguration ${configurationTarget.getAbsolutePath}")
+
+    configurationTarget
   }
 
   private def writeConfig(target: File, contents: String): File = {
