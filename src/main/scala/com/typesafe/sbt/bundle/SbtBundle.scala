@@ -135,6 +135,8 @@ object SbtBundle extends AutoPlugin {
 
   override def trigger = AllRequirements
 
+  private val tmpConfName = "frontend"
+
   override def projectSettings = Seq(
     system := (packageName in Universal).value,
     roles := Set.empty,
@@ -206,10 +208,7 @@ object SbtBundle extends AutoPlugin {
 
     val bundleTarget = (target in Configuration).value
 
-    val configurationTarget = (NativePackagerKeys.stagingDirectory in Configuration).value / "frontend"
-    val srcDir = new File(configurationPath.value + "/" + "frontend")
-    IO.createDirectory(configurationTarget)
-    IO.copyDirectory(srcDir, configurationTarget, true, true)
+    val configurationTarget = (NativePackagerKeys.stage in Configuration).value
 
     def relParent(p: (File, String)): (File, String) =
       (p._1, "frontend" + java.io.File.separator + p._2)
@@ -303,15 +302,11 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def stageConfiguration(): Def.Initialize[Task[File]] = Def.task {
-
     // TODO this is currently hardcoded to 'frontend'
-    val configurationTarget = (NativePackagerKeys.stagingDirectory in Configuration).value / "frontend"
-    val srcDir = new File(configurationPath.value + "/" + "frontend")
+    val configurationTarget = (NativePackagerKeys.stagingDirectory in Configuration).value / tmpConfName
+    val srcDir = new File(configurationPath.value + java.io.File.separator + tmpConfName)
     IO.createDirectory(configurationTarget)
     IO.copyDirectory(srcDir, configurationTarget, true, true)
-
-    println(s"stageConfiguration ${configurationTarget.getAbsolutePath}")
-
     configurationTarget
   }
 
