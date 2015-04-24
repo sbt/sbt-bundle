@@ -140,6 +140,7 @@ nrOfCpus       | The number of cpus required to run the bundle (can be fractions
 roles          | The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles.
 system         | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0. Defaults to the package name.
 startCommand   | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
+checks         | Declares uris to check to signal to ConductR that the bundle components have started for situations where a component doesn't do that. For example Seq("$WEB_HOST") will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready.
 
 ## Standard Environment Variables
 For reference, the following standard environment variables are available to a bundle component at runtime:

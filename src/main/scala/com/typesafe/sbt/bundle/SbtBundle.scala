@@ -69,7 +69,12 @@ object Import {
 
     val endpoints = SettingKey[Map[String, Endpoint]](
       "bundle-endpoints",
-      """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, 9000, "$name")) where the service name is the name of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example."""
+      """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, Set("http://:9000"))) where the service name is the name of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example."""
+    )
+
+    val checks = SettingKey[Seq[URI]](
+      "bundle-check-uris",
+      """Declares uris to check to signal to ConductR that the bundle components have started for situations where component doesn't do that. For example Seq("$WEB_HOST") will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready."""
     )
   }
 
@@ -134,7 +139,8 @@ object SbtBundle extends AutoPlugin {
       s"-J-Xms${memory.value.round1k.underlying}",
       s"-J-Xmx${memory.value.round1k.underlying}"
     ),
-    endpoints := Map("web" -> Endpoint("http", 0, Set(URI(s"http://:9000")))),
+    endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http://:9000")))),
+    checks := Seq.empty,
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
         createDist(bundleType.value)
@@ -203,6 +209,19 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
+    val checkComponents = if (checks.value.nonEmpty)
+      checks.value.map(uri => s""""$uri"""").mkString(
+        s""",
+           |  "${(packageName in Universal).value}-status" = {
+           |    description      = "Status check for the bundle component"
+           |    file-system-type = "universal"
+           |    start-command    = ["check", """.stripMargin,
+        ", ",
+        s"""]
+           |    endpoints        = {}
+           |  }""".stripMargin)
+    else
+      ""
     s"""|version    = "1.0.0"
         |name       = "${name.value}"
         |system     = "${system.value}"
@@ -216,7 +235,7 @@ object SbtBundle extends AutoPlugin {
         |    file-system-type = "${bundleType.value}"
         |    start-command    = ${formatSeq(startCommand.value)}
         |    endpoints        = ${formatEndpoints(endpoints.value)}
-        |  }
+        |  }$checkComponents
         |}
         |""".stripMargin
   }
