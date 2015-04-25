@@ -121,7 +121,7 @@ object Import {
 
   val Bundle = config("bundle") extend Universal
 
-  val BundleConfiguration = config("config")
+  val BundleConfiguration = config("config") extend Universal
 }
 
 object SbtBundle extends AutoPlugin {
