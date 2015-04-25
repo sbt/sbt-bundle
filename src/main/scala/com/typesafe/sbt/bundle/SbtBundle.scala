@@ -50,6 +50,11 @@ object Import {
       "The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles."
     )
 
+    val configurationPath = SettingKey[String](
+      "configuration-path",
+      "The Location of the additional configuration to use"
+    )
+
     // General settings
 
     val bundleConf = TaskKey[String](
@@ -134,6 +139,8 @@ object SbtBundle extends AutoPlugin {
   override def `requires` = SbtNativePackager
 
   override def trigger = AllRequirements
+
+  private val tmpConfName = "frontend"
 
   override def projectSettings = Seq(
     system := (packageName in Universal).value,
