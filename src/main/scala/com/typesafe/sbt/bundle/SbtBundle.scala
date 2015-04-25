@@ -140,8 +140,6 @@ object SbtBundle extends AutoPlugin {
 
   override def trigger = AllRequirements
 
-  private val tmpConfName = "frontend"
-
   override def projectSettings = Seq(
     system := (packageName in Universal).value,
     roles := Set.empty,
