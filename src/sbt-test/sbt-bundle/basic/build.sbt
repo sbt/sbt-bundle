@@ -18,8 +18,10 @@ BundleKeys.endpoints += "akka-remote" -> Endpoint("tcp")
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
+configurationName := "backend"
+
 checkBundleConf := {
-  val contents = IO.read(target.value / "bundle" / "tmp" / "bundle.conf")
+  val contents = IO.read((target in Bundle).value / "tmp" / "bundle.conf")
   val expectedContents = """|version    = "1.0.0"
                             |name       = "simple-test"
                             |system     = "simple-test-0.1.0-SNAPSHOT"
@@ -52,4 +54,16 @@ checkBundleConf := {
                             |  }
                             |}""".stripMargin
   contents should include(expectedContents)
+}
+
+val checkConfigDist = taskKey[Unit]("check-config-dist-contents")
+
+checkConfigDist := {
+  val bundleContents = IO.read((target in BundleConfiguration).value  / "stage" / "backend" / "bundle.conf")
+  val expectedContents = """components = {
+                           |  "override-1.0.0" = {
+                           |    start-command    = ["override-1.0.0/bin/override", "-J-Xms67108864", "-J-Xmx67108864"]
+                           |  }
+                           |}""".stripMargin
+  bundleContents should include(expectedContents)
 }
