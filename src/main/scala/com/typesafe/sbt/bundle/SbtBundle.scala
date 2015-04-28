@@ -50,11 +50,6 @@ object Import {
       "The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles."
     )
 
-    val configurationPath = SettingKey[String](
-      "configuration-path",
-      "The Location of the additional configuration to use"
-    )
-
     // General settings
 
     val bundleConf = TaskKey[String](
@@ -177,7 +172,7 @@ object SbtBundle extends AutoPlugin {
     NativePackagerKeys.stagingDirectory in BundleConfiguration := (target in BundleConfiguration).value / "stage",
     target in Bundle := target.value / "bundle",
     target in BundleConfiguration := target.value / "bundle-configuration",
-    sourceDirectory in BundleConfiguration := sourceDirectory.value / "main" / "bundle-configuration",
+    sourceDirectory in BundleConfiguration := sourceDirectory.value / "bundle-configuration",
     configurationName := "default "
   )
 
@@ -189,8 +184,10 @@ object SbtBundle extends AutoPlugin {
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
-    shazar(bundleTarget, (packageName in Universal).value,
-      bundleMappings, streams.value.log, f => s"Bundle has been created: $f")
+    shazar(bundleTarget,
+      (packageName in Universal).value,
+      bundleMappings,
+      f => streams.value.log.info(s"Bundle has been created: $f"))
   }
 
   private def createConfiguration(): Def.Initialize[Task[File]] = Def.task {
@@ -200,22 +197,23 @@ object SbtBundle extends AutoPlugin {
       (p._1, configurationName.value + java.io.File.separator + p._2)
     val configChildren: List[File] = configurationTarget.listFiles().toList
     val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
-    shazar(bundleTarget, configurationName.value,
-      bundleMappings, streams.value.log, f => s"Bundle-Configuration has been created: $f")
+    shazar(bundleTarget,
+      configurationName.value,
+      bundleMappings,
+      f => streams.value.log.info(s"Bundle-Configuration has been created: $f"))
   }
 
-  private def shazar(bundleTarget: File,
-    archiveName: String,
-    bundleMappings: Seq[(File, String)],
-    logger: Logger,
-    message: File => String): File = {
-    val archived = Archives.makeZip(bundleTarget, archiveName, bundleMappings, Some(archiveName))
+  private def shazar(archiveTarget: File,
+                     archiveName: String,
+                     bundleMappings: Seq[(File, String)],
+                     logMessage: File => Unit): File = {
+    val archived = Archives.makeZip(archiveTarget, archiveName, bundleMappings, Some(archiveName))
     val exti = archived.name.lastIndexOf('.')
     val hash = Hash.toHex(digestFile(archived))
     val hashName = archived.name.take(exti) + "-" + hash + archived.name.drop(exti)
     val hashArchive = archived.getParentFile / hashName
     IO.move(archived, hashArchive)
-    logger.info(message(hashArchive))
+    logMessage(hashArchive)
     hashArchive
   }
 
@@ -294,7 +292,7 @@ object SbtBundle extends AutoPlugin {
 
   private def stageConfiguration(): Def.Initialize[Task[File]] = Def.task {
     val configurationTarget = (NativePackagerKeys.stagingDirectory in BundleConfiguration).value / configurationName.value
-    val srcDir = new File((sourceDirectory in BundleConfiguration).value + java.io.File.separator + configurationName.value)
+    val srcDir = (sourceDirectory in BundleConfiguration).value / configurationName.value
     if (!srcDir.exists()) sys.error(
       s"""Directory $srcDir does not exist.
          | Specify the desired configuration directory in ${sourceDirectory in BundleConfiguration}
