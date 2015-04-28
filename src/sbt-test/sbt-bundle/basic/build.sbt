@@ -13,13 +13,12 @@ BundleKeys.memory := 64.MiB
 BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
 
-BundleKeys.endpoints += "other" -> Endpoint("http", 0, Set(URI("http://:9001/simple-test")))
-BundleKeys.endpoints += "akka-remote" -> Endpoint("tcp")
-
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
+configurationName := "backend"
+
 checkBundleConf := {
-  val contents = IO.read(target.value / "bundle" / "tmp" / "bundle.conf")
+  val contents = IO.read((target in Bundle).value / "tmp" / "bundle.conf")
   val expectedContents = """|version    = "1.0.0"
                             |name       = "simple-test"
                             |system     = "simple-test-0.1.0-SNAPSHOT"
