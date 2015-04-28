@@ -47,9 +47,9 @@ bundle:dist
 It is possible to produce additional configuration bundles that contain an optional bundle.conf the value of which override the main bundle, as
 well as arbitrary shell scripts.
 
-These additional configuration files must be placed in <src>/main/bundle-configuration/<configurationFolderName>.
+These additional configuration files must be placed in <src>/bundle-configuration/<configurationFolderName>.
 
-You can have many configurations, and can specify the one you wish to package by setting:
+The bundle-configuration folder may contain many configurations, the desired configuration can be specified with the setting:
 
 ```
 configurationName := <configurationFolderName>
