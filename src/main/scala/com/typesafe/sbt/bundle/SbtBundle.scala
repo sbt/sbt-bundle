@@ -109,7 +109,14 @@ object Import {
       new sbt.URI(uri)
   }
 
+  val configurationName = SettingKey[String](
+    "configuration-name",
+    "The name of the directory of the additional configuration to use. Defaults to 'default'"
+  )
+
   val Bundle = config("bundle") extend Universal
+
+  val BundleConfiguration = config("config") extend Universal
 }
 
 object SbtBundle extends AutoPlugin {
@@ -151,8 +158,22 @@ object SbtBundle extends AutoPlugin {
         stageBundle(bundleType.value)
       }.value
     }.value,
+    NativePackagerKeys.dist in BundleConfiguration := Def.taskDyn {
+      Def.task {
+        createConfiguration()
+      }.value
+    }.value,
+    NativePackagerKeys.stage in BundleConfiguration := Def.taskDyn {
+      Def.task {
+        stageConfiguration
+      }.value
+    }.value,
     NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
-    target in Bundle := target.value / "bundle"
+    NativePackagerKeys.stagingDirectory in BundleConfiguration := (target in BundleConfiguration).value / "stage",
+    target in Bundle := target.value / "bundle",
+    target in BundleConfiguration := target.value / "bundle-configuration",
+    sourceDirectory in BundleConfiguration := sourceDirectory.value / "bundle-configuration",
+    configurationName := "default "
   )
 
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
@@ -163,15 +184,36 @@ object SbtBundle extends AutoPlugin {
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
-    val name = (packageName in Universal).value
-    val archive = Archives.makeZip(bundleTarget, name, bundleMappings, Some(name))
-    val archiveName = archive.getName
-    val exti = archiveName.lastIndexOf('.')
-    val hash = Hash.toHex(digestFile(archive))
-    val hashName = archiveName.take(exti) + "-" + hash + archiveName.drop(exti)
-    val hashArchive = archive.getParentFile / hashName
-    IO.move(archive, hashArchive)
-    streams.value.log.info(s"Bundle has been created: $hashArchive")
+    shazar(bundleTarget,
+      (packageName in Universal).value,
+      bundleMappings,
+      f => streams.value.log.info(s"Bundle has been created: $f"))
+  }
+
+  private def createConfiguration(): Def.Initialize[Task[File]] = Def.task {
+    val bundleTarget = (target in BundleConfiguration).value
+    val configurationTarget = (NativePackagerKeys.stage in BundleConfiguration).value
+    def relParent(p: (File, String)): (File, String) =
+      (p._1, configurationName.value + java.io.File.separator + p._2)
+    val configChildren: List[File] = configurationTarget.listFiles().toList
+    val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
+    shazar(bundleTarget,
+      configurationName.value,
+      bundleMappings,
+      f => streams.value.log.info(s"Bundle-Configuration has been created: $f"))
+  }
+
+  private def shazar(archiveTarget: File,
+    archiveName: String,
+    bundleMappings: Seq[(File, String)],
+    logMessage: File => Unit): File = {
+    val archived = Archives.makeZip(archiveTarget, archiveName, bundleMappings, Some(archiveName))
+    val exti = archived.name.lastIndexOf('.')
+    val hash = Hash.toHex(digestFile(archived))
+    val hashName = archived.name.take(exti) + "-" + hash + archived.name.drop(exti)
+    val hashArchive = archived.getParentFile / hashName
+    IO.move(archived, hashArchive)
+    logMessage(hashArchive)
     hashArchive
   }
 
@@ -246,6 +288,18 @@ object SbtBundle extends AutoPlugin {
     val componentTarget = bundleTarget / (packageName in Universal).value
     IO.copy((mappings in bundleTypeConfig).value.map(p => (p._1, componentTarget / p._2)))
     componentTarget
+  }
+
+  private def stageConfiguration(): Def.Initialize[Task[File]] = Def.task {
+    val configurationTarget = (NativePackagerKeys.stagingDirectory in BundleConfiguration).value / configurationName.value
+    val srcDir = (sourceDirectory in BundleConfiguration).value / configurationName.value
+    if (!srcDir.exists()) sys.error(
+      s"""Directory $srcDir does not exist.
+         | Specify the desired configuration directory in ${sourceDirectory in BundleConfiguration}
+         |  with the 'configurationName' setting""".stripMargin)
+    IO.createDirectory(configurationTarget)
+    IO.copyDirectory(srcDir, configurationTarget, true, true)
+    configurationTarget
   }
 
   private def writeConfig(target: File, contents: String): File = {
