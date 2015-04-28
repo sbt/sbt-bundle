@@ -184,7 +184,7 @@ object SbtBundle extends AutoPlugin {
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
-    shazarTarget(bundleTarget,
+    shazar(bundleTarget,
       (packageName in Universal).value,
       bundleMappings,
       f => streams.value.log.info(s"Bundle has been created: $f"))
@@ -197,17 +197,17 @@ object SbtBundle extends AutoPlugin {
       (p._1, configurationName.value + java.io.File.separator + p._2)
     val configChildren: List[File] = configurationTarget.listFiles().toList
     val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
-    shazarTarget(bundleTarget,
+    shazar(bundleTarget,
       configurationName.value,
       bundleMappings,
       f => streams.value.log.info(s"Bundle-Configuration has been created: $f"))
   }
 
-  private def shazarTarget(bundleTarget: File,
-    archiveName: String,
-    bundleMappings: Seq[(File, String)],
-    logMessage: File => Unit): File = {
-    val archived = Archives.makeZip(bundleTarget, archiveName, bundleMappings, Some(archiveName))
+  private def shazar(archiveTarget: File,
+                     archiveName: String,
+                     bundleMappings: Seq[(File, String)],
+                     logMessage: File => Unit): File = {
+    val archived = Archives.makeZip(archiveTarget, archiveName, bundleMappings, Some(archiveName))
     val exti = archived.name.lastIndexOf('.')
     val hash = Hash.toHex(digestFile(archived))
     val hashName = archived.name.take(exti) + "-" + hash + archived.name.drop(exti)
