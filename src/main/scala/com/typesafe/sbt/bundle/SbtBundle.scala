@@ -204,9 +204,9 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def shazar(archiveTarget: File,
-                     archiveName: String,
-                     bundleMappings: Seq[(File, String)],
-                     logMessage: File => Unit): File = {
+    archiveName: String,
+    bundleMappings: Seq[(File, String)],
+    logMessage: File => Unit): File = {
     val archived = Archives.makeZip(archiveTarget, archiveName, bundleMappings, Some(archiveName))
     val exti = archived.name.lastIndexOf('.')
     val hash = Hash.toHex(digestFile(archived))
