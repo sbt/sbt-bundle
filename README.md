@@ -44,6 +44,25 @@ Finally, produce a bundle:
 bundle:dist
 ```
 
+It is possible to produce additional configuration bundles that contain an optional bundle.conf the value of which override the main bundle, as
+well as arbitrary shell scripts.
+
+These additional configuration files must be placed in <src>/bundle-configuration/<configurationFolderName>.
+
+The bundle-configuration folder may contain many configurations, the desired configuration can be specified with the setting:
+
+```
+configurationName := <configurationFolderName>
+```
+
+in build.sbt
+
+Then to produce this additional bundle:
+
+```
+config:dist
+```
+
 ## ConductR Bundles
 
 ConductR has a bundle format in order for components to be described. In general there is a one-to-one correlation between a bundle and a component.
