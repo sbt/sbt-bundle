@@ -52,7 +52,7 @@ These additional configuration files must be placed in <src>/bundle-configuratio
 The bundle-configuration folder may contain many configurations, the desired configuration can be specified with the setting:
 
 ```
-configurationName := <configurationFolderName>
+BundleKeys.configurationName := <configurationFolderName>
 ```
 
 in build.sbt
@@ -67,17 +67,18 @@ configuration:dist
 
 The following settings are provided under the `BundleKeys` object:
 
-Name           | Description
----------------|-------------
-bundleConf     | The bundle configuration file contents.
-bundleType     | The type of configuration that this bundling relates to. By default Universal is used.
-diskSpace      | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
-endpoints      | Declares endpoints using an `Endpoint(protocol, bindPort, services)` structure. The default is `Map("web" -> Endpoint("http", services = Set(URI(s"http://:9000"))))` where the key is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
-memory         | The amount of memory required to run the bundle.
-nrOfCpus       | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
-roles          | The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles.
-system         | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0. Defaults to the package name.
-startCommand   | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
-checks         | Declares uris to check to signal to ConductR that the bundle components have started for situations where a component doesn't do that. For example Seq("$WEB_HOST") will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready.
+Name              | Description
+------------------|-------------
+bundleConf        | The bundle configuration file contents.
+bundleType        | The type of configuration that this bundling relates to. By default Universal is used.
+diskSpace         | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
+endpoints         | Declares endpoints using an `Endpoint(protocol, bindPort, services)` structure. The default is `Map("web" -> Endpoint("http", services = Set(URI(s"http://:9000"))))` where the key is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
+memory            | The amount of memory required to run the bundle.
+nrOfCpus          | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
+roles             | The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles.
+system            | A logical name that can be used to associate multiple bundles with each other. This could be an application or service association and should include a version e.g. myapp-1.0.0. Defaults to the package name.
+startCommand      | Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder.
+checks            | Declares uris to check to signal to ConductR that the bundle components have started for situations where a component doesn't do that. For example Seq("$WEB_HOST") will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready.
+configurationName | The name of the directory of the additional configuration to use. Defaults to 'default'
 
 &copy; Typesafe Inc., 2014-2015
