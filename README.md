@@ -60,7 +60,7 @@ in build.sbt
 Then to produce this additional bundle:
 
 ```
-config:dist
+configuration:dist
 ```
 
 ## Settings

@@ -18,7 +18,7 @@ BundleKeys.endpoints += "akka-remote" -> Endpoint("tcp")
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
-configurationName := "backend"
+BundleKeys.configurationName := "backend"
 
 checkBundleConf := {
   val contents = IO.read((target in Bundle).value / "tmp" / "bundle.conf")
