@@ -76,6 +76,11 @@ object Import {
       "bundle-check-uris",
       """Declares uris to check to signal to ConductR that the bundle components have started for situations where component doesn't do that. For example Seq("$WEB_HOST") will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready."""
     )
+
+    val configurationName = SettingKey[String](
+      "bundle-configuration-name",
+      "The name of the directory of the additional configuration to use. Defaults to 'default'"
+    )
   }
 
   case class Bytes(underlying: Long) extends AnyVal {
@@ -109,14 +114,9 @@ object Import {
       new sbt.URI(uri)
   }
 
-  val configurationName = SettingKey[String](
-    "configuration-name",
-    "The name of the directory of the additional configuration to use. Defaults to 'default'"
-  )
-
   val Bundle = config("bundle") extend Universal
 
-  val BundleConfiguration = config("config") extend Universal
+  val BundleConfiguration = config("configuration") extend Universal
 }
 
 object SbtBundle extends AutoPlugin {
@@ -165,15 +165,15 @@ object SbtBundle extends AutoPlugin {
     }.value,
     NativePackagerKeys.stage in BundleConfiguration := Def.taskDyn {
       Def.task {
-        stageConfiguration
+        stageConfiguration()
       }.value
     }.value,
     NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
     NativePackagerKeys.stagingDirectory in BundleConfiguration := (target in BundleConfiguration).value / "stage",
     target in Bundle := target.value / "bundle",
     target in BundleConfiguration := target.value / "bundle-configuration",
-    sourceDirectory in BundleConfiguration := sourceDirectory.value / "bundle-configuration",
-    configurationName := "default "
+    sourceDirectory in BundleConfiguration := (sourceDirectory in Universal).value.getParentFile / "bundle-configuration",
+    configurationName := "default"
   )
 
   private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
@@ -193,8 +193,6 @@ object SbtBundle extends AutoPlugin {
   private def createConfiguration(): Def.Initialize[Task[File]] = Def.task {
     val bundleTarget = (target in BundleConfiguration).value
     val configurationTarget = (NativePackagerKeys.stage in BundleConfiguration).value
-    def relParent(p: (File, String)): (File, String) =
-      (p._1, configurationName.value + java.io.File.separator + p._2)
     val configChildren: List[File] = configurationTarget.listFiles().toList
     val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
     shazar(bundleTarget,
@@ -295,10 +293,10 @@ object SbtBundle extends AutoPlugin {
     val srcDir = (sourceDirectory in BundleConfiguration).value / configurationName.value
     if (!srcDir.exists()) sys.error(
       s"""Directory $srcDir does not exist.
-         | Specify the desired configuration directory in ${sourceDirectory in BundleConfiguration}
-         |  with the 'configurationName' setting""".stripMargin)
+         | Specify the desired configuration directory name
+         |  with the 'configurationName' setting given that it is not "default"""".stripMargin)
     IO.createDirectory(configurationTarget)
-    IO.copyDirectory(srcDir, configurationTarget, true, true)
+    IO.copyDirectory(srcDir, configurationTarget, overwrite = true, preserveLastModified = true)
     configurationTarget
   }
 

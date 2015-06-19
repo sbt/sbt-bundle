@@ -15,7 +15,7 @@ BundleKeys.roles := Set("web-server")
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
-configurationName := "backend"
+BundleKeys.configurationName := "backend"
 
 val checkConfigDist = taskKey[Unit]("check-config-dist-contents")
 
