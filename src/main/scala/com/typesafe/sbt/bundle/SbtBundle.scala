@@ -10,6 +10,7 @@ import sbt.Keys._
 import SbtNativePackager.Universal
 
 import scala.annotation.tailrec
+import scala.concurrent.duration._
 
 object Import {
 
@@ -72,9 +73,14 @@ object Import {
       """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, Set("http://:9000"))) where the service name is the name of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example."""
     )
 
+    val checkInitialDelay = SettingKey[FiniteDuration](
+      "bundle-check-initial-delay",
+      "Initial delay before the check uris are triggered. The 'FiniteDuration' value gets rounded up to full seconds. Default is 3 seconds."
+    )
+
     val checks = SettingKey[Seq[URI]](
       "bundle-check-uris",
-      """Declares uris to check to signal to ConductR that the bundle components have started for situations where component doesn't do that. For example Seq("$WEB_HOST") will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready."""
+      """Declares uris to check to signal to ConductR that the bundle components have started for situations where component doesn't do that. For example Seq(uri("$WEB_HOST?retry-count=5&retry-delay=2")) will check that a endpoint named "web" will be checked given its host environment var. Once that URL becomes available then ConductR will be signalled that the bundle is ready. Optional params are: 'retry-count': Number of retries, 'retry-delay': Delay in seconds between retries, 'docker-timeout': Timeout in seconds for docker container start."""
     )
 
     val configurationName = SettingKey[String](
@@ -147,6 +153,7 @@ object SbtBundle extends AutoPlugin {
       s"-J-Xmx${memory.value.round1k.underlying}"
     ),
     endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http://:9000")))),
+    checkInitialDelay := 3.seconds,
     checks := Seq.empty,
     NativePackagerKeys.dist in Bundle := Def.taskDyn {
       Def.task {
@@ -249,19 +256,25 @@ object SbtBundle extends AutoPlugin {
   }
 
   private def getConfig: Def.Initialize[Task[String]] = Def.task {
+    val checkInitialDelayInSeconds =
+      if (checkInitialDelay.value.toMillis % 1000 > 0)
+        checkInitialDelay.value.toSeconds + 1 // always round up
+      else
+        checkInitialDelay.value.toSeconds
     val checkComponents = if (checks.value.nonEmpty)
       checks.value.map(uri => s""""$uri"""").mkString(
         s""",
            |  "${(packageName in Universal).value}-status" = {
            |    description      = "Status check for the bundle component"
            |    file-system-type = "universal"
-           |    start-command    = ["check", """.stripMargin,
+           |    start-command    = ["check", "--initial-delay", "$checkInitialDelayInSeconds", """.stripMargin,
         ", ",
         s"""]
            |    endpoints        = {}
            |  }""".stripMargin)
     else
       ""
+
     s"""|version    = "1.0.0"
         |name       = "${name.value}"
         |system     = "${system.value}"
