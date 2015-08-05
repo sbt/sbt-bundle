@@ -1,6 +1,7 @@
 import ByteConversions._
 import com.typesafe.sbt.bundle.SbtBundle._
 import org.scalatest.Matchers._
+import scala.concurrent.duration._
 
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
@@ -12,8 +13,8 @@ BundleKeys.nrOfCpus := 1.0
 BundleKeys.memory := 64.MiB
 BundleKeys.diskSpace := 10.MB
 BundleKeys.roles := Set("web-server")
-
-BundleKeys.checks := Seq(URI("$WEB_HOST"))
+BundleKeys.checkInitialDelay := 1400.milliseconds
+BundleKeys.checks := Seq(uri("$WEB_HOST?retry-count=5&retry-delay=3"))
 
 val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
@@ -42,7 +43,7 @@ checkBundleConf := {
                             |  "simple-test-0.1.0-SNAPSHOT-status" = {
                             |    description      = "Status check for the bundle component"
                             |    file-system-type = "universal"
-                            |    start-command    = ["check", "$WEB_HOST"]
+                            |    start-command    = ["check", "--initial-delay", "2", "$WEB_HOST?retry-count=5&retry-delay=3"]
                             |    endpoints        = {}
                             |  }
                             |}""".stripMargin
