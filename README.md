@@ -26,6 +26,9 @@ Note that users of Play 2.4 onward can instead type:
 
 ```scala
 enablePlugins(PlayScala)
+```
+
+...or `PlayJava` for Java.
 
 For Play 2.3 that you must also additionally enable `JavaAppPackaging` for your build e.g.:
 
