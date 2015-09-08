@@ -22,7 +22,12 @@ Declaring the native packager or any of its other plugins should be sufficient. 
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 ```
 
-_Note that if you have used Play 2.3 that you must also additionally enable `JavaAppPackaging` for your build e.g.:_
+Note that users of Play 2.4 onward can instead type:
+
+```scala
+enablePlugins(PlayScala)
+
+For Play 2.3 that you must also additionally enable `JavaAppPackaging` for your build e.g.:
 
 ```scala
 enablePlugins(JavaAppPackaging, PlayScala)
