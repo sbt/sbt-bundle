@@ -22,18 +22,20 @@ BundleKeys.configurationName := "backend"
 
 checkBundleConf := {
   val contents = IO.read((target in Bundle).value / "tmp" / "bundle.conf")
-  val expectedContents = """|version    = "1.0.0"
-                            |name       = "simple-test"
-                            |system     = "simple-test-0.1.0-SNAPSHOT"
-                            |nrOfCpus   = 1.0
-                            |memory     = 67108864
-                            |diskSpace  = 10000000
-                            |roles      = ["web-server"]
+  val expectedContents = """|version              = "1.1.0"
+                            |name                 = "simple-test"
+                            |compatibilityVersion = "0"
+                            |system               = "simple-test"
+                            |systemVersion        = "0"
+                            |nrOfCpus             = 1.0
+                            |memory               = 67108864
+                            |diskSpace            = 10000000
+                            |roles                = ["web-server"]
                             |components = {
-                            |  "simple-test-0.1.0-SNAPSHOT" = {
+                            |  "simple-test" = {
                             |    description      = "simple-test"
                             |    file-system-type = "universal"
-                            |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
+                            |    start-command    = ["simple-test/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
                             |    endpoints        = {
                             |      "web" = {
                             |        bind-protocol  = "http"
