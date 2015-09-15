@@ -48,7 +48,7 @@ object Import {
 
     val roles = SettingKey[Set[String]](
       "bundle-roles",
-      "The types of node in the cluster that this bundle can be deployed to. Defaults to having no specific roles."
+      """The types of node in the cluster that this bundle can be deployed to. Defaults to "web"."""
     )
 
     // General settings
@@ -86,6 +86,16 @@ object Import {
     val configurationName = SettingKey[String](
       "bundle-configuration-name",
       "The name of the directory of the additional configuration to use. Defaults to 'default'"
+    )
+
+    val compatibilityVersion = SettingKey[String](
+      "bundle-compatibility-version",
+      "A versioning scheme that will be included in a bundle's name that describes the level of compatibility with bundles that go before it. By default we take the major version component of a version as defined by http://semver.org/. However you can make this mean anything that you need it to mean in relation to bundles produced prior to it. We take the notion of a compatibility version from http://ometer.com/parallel.html."
+    )
+
+    val systemVersion = SettingKey[String](
+      "bundle-system-version",
+      "A version to associate with a system. This setting defaults to the value of compatibilityVersion."
     )
   }
 
@@ -142,13 +152,17 @@ object SbtBundle extends AutoPlugin {
   override def trigger = AllRequirements
 
   override def projectSettings = Seq(
-    system := (packageName in Universal).value,
-    roles := Set.empty,
+    compatibilityVersion := version.value.takeWhile(_ != '.'),
+    NativePackagerKeys.packageName in Bundle := normalizedName.value + "-v" + compatibilityVersion.value,
+
+    system := (normalizedName in Bundle).value,
+    systemVersion := compatibilityVersion.value,
+    roles := Set("web"),
 
     bundleConf := getConfig.value,
     bundleType := Universal,
     startCommand := Seq(
-      (file((packageName in Universal).value) / "bin" / (executableScriptName in Universal).value).getPath,
+      (file((normalizedName in Bundle).value) / "bin" / (executableScriptName in Universal).value).getPath,
       s"-J-Xms${memory.value.round1k.underlying}",
       s"-J-Xmx${memory.value.round1k.underlying}"
     ),
@@ -187,12 +201,12 @@ object SbtBundle extends AutoPlugin {
     val bundleTarget = (target in Bundle).value
     val configTarget = bundleTarget / "tmp"
     def relParent(p: (File, String)): (File, String) =
-      (p._1, (packageName in Universal).value + java.io.File.separator + p._2)
+      (p._1, (normalizedName in Bundle).value + java.io.File.separator + p._2)
     val configFile = writeConfig(configTarget, bundleConf.value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
     shazar(bundleTarget,
-      (packageName in Universal).value,
+      (packageName in Bundle).value,
       bundleMappings,
       f => streams.value.log.info(s"Bundle has been created: $f"))
   }
@@ -264,7 +278,7 @@ object SbtBundle extends AutoPlugin {
     val checkComponents = if (checks.value.nonEmpty)
       checks.value.map(uri => s""""$uri"""").mkString(
         s""",
-           |  "${(packageName in Universal).value}-status" = {
+           |  "${(normalizedName in Bundle).value}-status" = {
            |    description      = "Status check for the bundle component"
            |    file-system-type = "universal"
            |    start-command    = ["check", "--initial-delay", "$checkInitialDelayInSeconds", """.stripMargin,
@@ -275,15 +289,17 @@ object SbtBundle extends AutoPlugin {
     else
       ""
 
-    s"""|version    = "1.0.0"
-        |name       = "${name.value}"
-        |system     = "${system.value}"
-        |nrOfCpus   = ${nrOfCpus.value}
-        |memory     = ${memory.value.underlying}
-        |diskSpace  = ${diskSpace.value.underlying}
-        |roles      = ${formatSeq(roles.value)}
+    s"""|version              = "1.1.0"
+        |name                 = "${(normalizedName in Bundle).value}"
+        |compatibilityVersion = "${compatibilityVersion.value}"
+        |system               = "${system.value}"
+        |systemVersion        = "${systemVersion.value}"
+        |nrOfCpus             = ${nrOfCpus.value}
+        |memory               = ${memory.value.underlying}
+        |diskSpace            = ${diskSpace.value.underlying}
+        |roles                = ${formatSeq(roles.value)}
         |components = {
-        |  "${(packageName in Universal).value}" = {
+        |  "${(normalizedName in Bundle).value}" = {
         |    description      = "${projectInfo.value.description}"
         |    file-system-type = "${bundleType.value}"
         |    start-command    = ${formatSeq(startCommand.value)}
@@ -296,7 +312,7 @@ object SbtBundle extends AutoPlugin {
   private def stageBundle(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
     val bundleTarget = (NativePackagerKeys.stagingDirectory in Bundle).value
     writeConfig(bundleTarget, bundleConf.value)
-    val componentTarget = bundleTarget / (packageName in Universal).value
+    val componentTarget = bundleTarget / (normalizedName in Bundle).value
     IO.copy((mappings in bundleTypeConfig).value.map(p => (p._1, componentTarget / p._2)))
     componentTarget
   }

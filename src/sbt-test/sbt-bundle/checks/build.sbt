@@ -12,7 +12,6 @@ version := "0.1.0-SNAPSHOT"
 BundleKeys.nrOfCpus := 1.0
 BundleKeys.memory := 64.MiB
 BundleKeys.diskSpace := 10.MB
-BundleKeys.roles := Set("web-server")
 BundleKeys.checkInitialDelay := 1400.milliseconds
 BundleKeys.checks := Seq(uri("$WEB_HOST?retry-count=5&retry-delay=3"))
 
@@ -20,18 +19,20 @@ val checkBundleConf = taskKey[Unit]("check-main-css-contents")
 
 checkBundleConf := {
   val contents = IO.read(target.value / "bundle" / "tmp" / "bundle.conf")
-  val expectedContents = """|version    = "1.0.0"
-                            |name       = "simple-test"
-                            |system     = "simple-test-0.1.0-SNAPSHOT"
-                            |nrOfCpus   = 1.0
-                            |memory     = 67108864
-                            |diskSpace  = 10000000
-                            |roles      = ["web-server"]
+  val expectedContents = """|version              = "1.1.0"
+                            |name                 = "simple-test"
+                            |compatibilityVersion = "0"
+                            |system               = "simple-test"
+                            |systemVersion        = "0"
+                            |nrOfCpus             = 1.0
+                            |memory               = 67108864
+                            |diskSpace            = 10000000
+                            |roles                = ["web"]
                             |components = {
-                            |  "simple-test-0.1.0-SNAPSHOT" = {
+                            |  "simple-test" = {
                             |    description      = "simple-test"
                             |    file-system-type = "universal"
-                            |    start-command    = ["simple-test-0.1.0-SNAPSHOT/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
+                            |    start-command    = ["simple-test/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
                             |    endpoints        = {
                             |      "web" = {
                             |        bind-protocol  = "http"
@@ -40,7 +41,7 @@ checkBundleConf := {
                             |      }
                             |    }
                             |  },
-                            |  "simple-test-0.1.0-SNAPSHOT-status" = {
+                            |  "simple-test-status" = {
                             |    description      = "Status check for the bundle component"
                             |    file-system-type = "universal"
                             |    start-command    = ["check", "--initial-delay", "2", "$WEB_HOST?retry-count=5&retry-delay=3"]
