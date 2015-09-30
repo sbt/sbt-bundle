@@ -63,7 +63,12 @@ object Import {
       "The type of configuration that this bundling relates to. By default Universal is used."
     )
 
-    val startCommand = SettingKey[Seq[String]](
+    val executableScriptPath = SettingKey[String](
+      "bundle-executable-script-path",
+      "The relative path of the executableScript within the bundle."
+    )
+
+    val startCommand = TaskKey[Seq[String]](
       "bundle-start-command",
       "Command line args required to start the component. Paths are expressed relative to the component's bin folder. The default is to use the bash script in the bin folder."
     )
@@ -151,75 +156,140 @@ object SbtBundle extends AutoPlugin {
 
   override def trigger = AllRequirements
 
-  override def projectSettings = Seq(
-    compatibilityVersion := version.value.takeWhile(_ != '.'),
-    NativePackagerKeys.packageName in Bundle := normalizedName.value + "-v" + compatibilityVersion.value,
+  override def projectSettings =
+    bundleSettings(Bundle) ++ configurationSettings(BundleConfiguration) ++
+      Seq(
+        bundleType := Universal,
+        checkInitialDelay := 3.seconds,
+        checks := Seq.empty,
+        compatibilityVersion := (version in Bundle).value.takeWhile(_ != '.'),
+        configurationName := "default",
+        endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http://:9000")))),
+        javaOptions in Bundle ++= Seq(
+          s"-J-Xms${(memory in Bundle).value.round1k.underlying}",
+          s"-J-Xmx${(memory in Bundle).value.round1k.underlying}"
+        ),
+        projectTarget := target.value,
+        roles := Set("web"),
+        system := (normalizedName in Bundle).value,
+        systemVersion := (compatibilityVersion in Bundle).value,
+        startCommand := Seq((executableScriptPath in Bundle).value) ++ (javaOptions in Bundle).value
+      )
 
-    system := (normalizedName in Bundle).value,
-    systemVersion := compatibilityVersion.value,
-    roles := Set("web"),
+  override def projectConfigurations: Seq[Configuration] =
+    Seq(
+      Bundle,
+      BundleConfiguration,
+      Universal // `Universal` is added here due to this issue: (https://github.com/sbt/sbt-native-packager/issues/676
+    )
 
-    bundleConf := getConfig.value,
-    bundleType := Universal,
-    startCommand := Seq(
-      (file((normalizedName in Bundle).value) / "bin" / (executableScriptName in Universal).value).getPath,
-      s"-J-Xms${memory.value.round1k.underlying}",
-      s"-J-Xmx${memory.value.round1k.underlying}"
-    ),
-    endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http://:9000")))),
-    checkInitialDelay := 3.seconds,
-    checks := Seq.empty,
-    NativePackagerKeys.dist in Bundle := Def.taskDyn {
-      Def.task {
-        createDist(bundleType.value)
-      }.value
-    }.value,
-    NativePackagerKeys.stage in Bundle := Def.taskDyn {
-      Def.task {
-        stageBundle(bundleType.value)
-      }.value
-    }.value,
-    NativePackagerKeys.dist in BundleConfiguration := Def.taskDyn {
-      Def.task {
-        createConfiguration()
-      }.value
-    }.value,
-    NativePackagerKeys.stage in BundleConfiguration := Def.taskDyn {
-      Def.task {
-        stageConfiguration()
-      }.value
-    }.value,
-    NativePackagerKeys.stagingDirectory in Bundle := (target in Bundle).value / "stage",
-    NativePackagerKeys.stagingDirectory in BundleConfiguration := (target in BundleConfiguration).value / "stage",
-    target in Bundle := target.value / "bundle",
-    target in BundleConfiguration := target.value / "bundle-configuration",
-    sourceDirectory in BundleConfiguration := (sourceDirectory in Universal).value.getParentFile / "bundle-configuration",
-    configurationName := "default"
-  )
+  /**
+   * Build out the bundle settings for a given sbt configuration.
+   */
+  def bundleSettings(config: Configuration): Seq[Setting[_]] =
+    inConfig(config)(Seq(
+      bundleConf := getConfig(config, forAllSettings = true).value,
+      executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in Universal).value).getPath,
+      NativePackagerKeys.packageName := (normalizedName in config).value + "-v" + (compatibilityVersion in config).value,
+      NativePackagerKeys.dist := Def.taskDyn {
+        Def.task {
+          createDist(config, (bundleType in config).value)
+        }.value
+      }.value,
+      NativePackagerKeys.stage := Def.taskDyn {
+        Def.task {
+          stageBundle(config, (bundleType in config).value)
+        }.value
+      }.value,
+      NativePackagerKeys.stagingDirectory := (target in config).value / "stage",
+      target := projectTarget.value / "bundle"
+    )) ++ configNameSettings(config)
 
-  private def createDist(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
-    val bundleTarget = (target in Bundle).value
-    val configTarget = bundleTarget / "tmp"
+  /**
+   * Build out the bundle configuration settings for a given sbt configuration.
+   */
+  def configurationSettings(config: Configuration): Seq[Setting[_]] =
+    inConfig(config)(Seq(
+      bundleConf := getConfig(config, forAllSettings = false).value,
+      checks := Seq.empty,
+      compatibilityVersion := (version in config).value.takeWhile(_ != '.'),
+      executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in Universal).value).getPath,
+      NativePackagerKeys.dist := Def.taskDyn {
+        Def.task {
+          createConfiguration(config)
+        }.value
+      }.value,
+      NativePackagerKeys.stage := Def.taskDyn {
+        Def.task {
+          stageConfiguration(config)
+        }.value
+      }.value,
+      NativePackagerKeys.stagingDirectory := (target in config).value / "stage",
+      target := projectTarget.value / "bundle-configuration",
+      sourceDirectory := (sourceDirectory in Universal).value.getParentFile / "bundle-configuration"
+    )) ++ configNameSettings(config)
+
+  private val projectTarget = settingKey[File]("")
+
+  private val bundleTypeConfigName = taskKey[(Configuration, Option[String])]("")
+  private val diskSpaceConfigName = taskKey[(Bytes, Option[String])]("")
+  private val endpointsConfigName = taskKey[(Map[String, Endpoint], Option[String])]("")
+  private val memoryConfigName = taskKey[(Bytes, Option[String])]("")
+  private val projectInfoConfigName = taskKey[(ModuleInfo, Option[String])]("")
+  private val rolesConfigName = taskKey[(Set[String], Option[String])]("")
+  private val startCommandConfigName = taskKey[(Seq[String], Option[String])]("")
+  private val checksConfigName = taskKey[(Seq[URI], Option[String])]("")
+  private val compatibilityVersionConfigName = taskKey[(String, Option[String])]("")
+  private val normalizedNameConfigName = taskKey[(String, Option[String])]("")
+  private val nrOfCpusConfigName = taskKey[(Double, Option[String])]("")
+  private val systemConfigName = taskKey[(String, Option[String])]("")
+  private val systemVersionConfigName = taskKey[(String, Option[String])]("")
+
+  private def configNameSettings(config: Configuration): Seq[Setting[_]] =
+    inConfig(config)(Seq(
+      bundleTypeConfigName := (bundleType in config).value -> toConfigName(bundleType in (thisProjectRef.value, config), state.value),
+      diskSpaceConfigName := (diskSpace in config).value -> toConfigName(diskSpace in (thisProjectRef.value, config), state.value),
+      endpointsConfigName := (endpoints in config).value -> toConfigName(endpoints in (thisProjectRef.value, config), state.value),
+      memoryConfigName := (memory in config).value -> toConfigName(memory in (thisProjectRef.value, config), state.value),
+      projectInfoConfigName := (projectInfo in config).value -> toConfigName(projectInfo in (thisProjectRef.value, config), state.value),
+      rolesConfigName := (roles in config).value -> toConfigName(roles in (thisProjectRef.value, config), state.value),
+      startCommandConfigName := (startCommand in config).value -> toConfigName(startCommand in (thisProjectRef.value, config), state.value),
+      checksConfigName := (checks in config).value -> toConfigName(checks in (thisProjectRef.value, config), state.value),
+      compatibilityVersionConfigName := (compatibilityVersion in config).value -> toConfigName(compatibilityVersion in (thisProjectRef.value, config), state.value),
+      normalizedNameConfigName := (normalizedName in config).value -> toConfigName(normalizedName in (thisProjectRef.value, config), state.value),
+      nrOfCpusConfigName := (nrOfCpus in config).value -> toConfigName(nrOfCpus in (thisProjectRef.value, config), state.value),
+      systemConfigName := (system in config).value -> toConfigName(system in (thisProjectRef.value, config), state.value),
+      systemVersionConfigName := (systemVersion in config).value -> toConfigName(systemVersion in (thisProjectRef.value, config), state.value)
+    ))
+
+  private def toConfigName(scoped: Scoped, state: State): Option[String] = {
+    val extracted = Project.extract(state)
+    extracted.structure.data.definingScope(scoped.scope, scoped.key).flatMap(_.config.toOption.map(_.name))
+  }
+
+  private def createDist(config: Configuration, bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
+    val bundleTarget = (target in config).value
+    val configTarget = bundleTarget / config.name / "tmp"
     def relParent(p: (File, String)): (File, String) =
-      (p._1, (normalizedName in Bundle).value + java.io.File.separator + p._2)
-    val configFile = writeConfig(configTarget, bundleConf.value)
+      (p._1, (normalizedName in config).value + java.io.File.separator + p._2)
+    val configFile = writeConfig(configTarget, (bundleConf in config).value)
     val bundleMappings =
       configFile.pair(relativeTo(configTarget)) ++ (mappings in bundleTypeConfig).value.map(relParent)
     shazar(bundleTarget,
-      (packageName in Bundle).value,
+      (packageName in config).value,
       bundleMappings,
       f => streams.value.log.info(s"Bundle has been created: $f"))
   }
 
-  private def createConfiguration(): Def.Initialize[Task[File]] = Def.task {
-    val bundleTarget = (target in BundleConfiguration).value
-    val configurationTarget = (NativePackagerKeys.stage in BundleConfiguration).value
+  private def createConfiguration(config: Configuration): Def.Initialize[Task[File]] = Def.task {
+    val bundleTarget = (target in config).value
+    val configurationTarget = (NativePackagerKeys.stage in config).value
     val configChildren: List[File] = configurationTarget.listFiles().toList
     val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
     shazar(bundleTarget,
-      configurationName.value,
+      (configurationName in config).value,
       bundleMappings,
-      f => streams.value.log.info(s"Bundle-Configuration has been created: $f"))
+      f => streams.value.log.info(s"Bundle configuration has been created: $f"))
   }
 
   private def shazar(archiveTarget: File,
@@ -261,70 +331,86 @@ object SbtBundle extends AutoPlugin {
     val formatted =
       for {
         (label, Endpoint(bindProtocol, bindPort, services)) <- endpoints
-      } yield s"""|      "$label" = {
-                  |        bind-protocol  = "$bindProtocol"
-                  |        bind-port = $bindPort
-                  |        services  = ${formatSeq(services.map(_.toString))}
-                  |      }""".stripMargin
-    formatted.mkString(f"{%n", f",%n", f"%n    }")
+      } yield s"""|  "$label" = {
+                  |    bind-protocol  = "$bindProtocol"
+                  |    bind-port = $bindPort
+                  |    services  = ${formatSeq(services.map(_.toString))}
+                  |  }""".stripMargin
+    formatted.mkString(f"{%n", f",%n", f"%n}")
   }
 
-  private def getConfig: Def.Initialize[Task[String]] = Def.task {
-    val checkInitialDelayInSeconds =
-      if (checkInitialDelay.value.toMillis % 1000 > 0)
-        checkInitialDelay.value.toSeconds + 1 // always round up
-      else
-        checkInitialDelay.value.toSeconds
-    val checkComponents = if (checks.value.nonEmpty)
-      checks.value.map(uri => s""""$uri"""").mkString(
-        s""",
-           |  "${(normalizedName in Bundle).value}-status" = {
-           |    description      = "Status check for the bundle component"
-           |    file-system-type = "universal"
-           |    start-command    = ["check", "--initial-delay", "$checkInitialDelayInSeconds", """.stripMargin,
-        ", ",
-        s"""]
-           |    endpoints        = {}
-           |  }""".stripMargin)
-    else
-      ""
+  private def getConfig(config: Configuration, forAllSettings: Boolean): Def.Initialize[Task[String]] = Def.task {
+    val checkComponents = (checksConfigName in config).value match {
+      case (value, configName) if (forAllSettings || configName.isDefined) && value.nonEmpty =>
+        val checkInitialDelayValue = (checkInitialDelay in config).value
+        val checkInitialDelayInSeconds =
+          if (checkInitialDelayValue.toMillis % 1000 > 0)
+            checkInitialDelayValue.toSeconds + 1 // always round up
+          else
+            checkInitialDelayValue.toSeconds
+        Seq(
+          value.map(uri => s""""$uri"""").mkString(
+            s"""components."${(normalizedName in config).value}-status" = {
+               |  description      = "Status check for the bundle component"
+               |  file-system-type = "universal"
+               |  start-command    = ["check", "--initial-delay", "$checkInitialDelayInSeconds", """.stripMargin,
+            ", ",
+            s"""]
+               |  endpoints        = {}
+               |}""".stripMargin)
+        )
+      case _ =>
+        Seq.empty[String]
+    }
 
-    s"""|version              = "1.1.0"
-        |name                 = "${(normalizedName in Bundle).value}"
-        |compatibilityVersion = "${compatibilityVersion.value}"
-        |system               = "${system.value}"
-        |systemVersion        = "${systemVersion.value}"
-        |nrOfCpus             = ${nrOfCpus.value}
-        |memory               = ${memory.value.underlying}
-        |diskSpace            = ${diskSpace.value.underlying}
-        |roles                = ${formatSeq(roles.value)}
-        |components = {
-        |  "${(normalizedName in Bundle).value}" = {
-        |    description      = "${projectInfo.value.description}"
-        |    file-system-type = "${bundleType.value}"
-        |    start-command    = ${formatSeq(startCommand.value)}
-        |    endpoints        = ${formatEndpoints(endpoints.value)}
-        |  }$checkComponents
-        |}
-        |""".stripMargin
+    def formatValue[T](format: String, valueAndConfigName: (T, Option[String])): Seq[String] =
+      valueAndConfigName match {
+        case (value, configName) if forAllSettings || configName.isDefined => Seq(format.format(value))
+        case _                                                             => Seq.empty[String]
+      }
+
+    def toString[T](valueAndConfigName: (T, Option[String]), f: T => String): (String, Option[String]) =
+      f(valueAndConfigName._1) -> valueAndConfigName._2
+
+    val componentPrefix = s"""components."${(normalizedName in config).value}""""
+
+    val declarations =
+      Seq("""version = "1.1.0"""") ++
+        formatValue("""name = "%s"""", (normalizedNameConfigName in config).value) ++
+        formatValue("""compatibilityVersion = "%s"""", (compatibilityVersionConfigName in config).value) ++
+        formatValue("""system = "%s"""", (systemConfigName in config).value) ++
+        formatValue("""systemVersion = "%s"""", (systemVersionConfigName in config).value) ++
+        formatValue("nrOfCpus = %s", (nrOfCpusConfigName in config).value) ++
+        formatValue("memory = %s", toString((memoryConfigName in config).value, (v: Bytes) => v.underlying.toString)) ++
+        formatValue("diskSpace = %s", toString((diskSpaceConfigName in config).value, (v: Bytes) => v.underlying.toString)) ++
+        formatValue(s"roles = %s", toString((rolesConfigName in config).value, (v: Set[String]) => formatSeq(v))) ++
+        formatValue(s"""$componentPrefix.description = "%s"""", toString((projectInfoConfigName in config).value, (v: ModuleInfo) => v.description)) ++
+        formatValue(s"""$componentPrefix."file-system-type" = "%s"""", (bundleTypeConfigName in config).value) ++
+        formatValue(s"""$componentPrefix."start-command" = %s""", toString((startCommandConfigName in config).value, (v: Seq[String]) => formatSeq(v))) ++
+        formatValue(s"""$componentPrefix.endpoints = %s""", toString((endpointsConfigName in config).value, (v: Map[String, Endpoint]) => formatEndpoints(v))) ++
+        checkComponents
+
+    declarations.mkString("\n")
   }
 
-  private def stageBundle(bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
-    val bundleTarget = (NativePackagerKeys.stagingDirectory in Bundle).value
-    writeConfig(bundleTarget, bundleConf.value)
-    val componentTarget = bundleTarget / (normalizedName in Bundle).value
+  private def stageBundle(config: Configuration, bundleTypeConfig: Configuration): Def.Initialize[Task[File]] = Def.task {
+    val bundleTarget = (NativePackagerKeys.stagingDirectory in config).value / config.name
+    writeConfig(bundleTarget, (bundleConf in config).value)
+    val componentTarget = bundleTarget / (normalizedName in config).value
     IO.copy((mappings in bundleTypeConfig).value.map(p => (p._1, componentTarget / p._2)))
     componentTarget
   }
 
-  private def stageConfiguration(): Def.Initialize[Task[File]] = Def.task {
-    val configurationTarget = (NativePackagerKeys.stagingDirectory in BundleConfiguration).value / configurationName.value
-    val srcDir = (sourceDirectory in BundleConfiguration).value / configurationName.value
-    if (!srcDir.exists()) sys.error(
+  private def stageConfiguration(config: Configuration): Def.Initialize[Task[File]] = Def.task {
+    val configurationTarget = (NativePackagerKeys.stagingDirectory in config).value / config.name
+    val generatedConf = (bundleConf in config).value
+    val srcDir = (sourceDirectory in config).value / (configurationName in config).value
+    if (generatedConf.isEmpty && !srcDir.exists()) sys.error(
       s"""Directory $srcDir does not exist.
-         | Specify the desired configuration directory name
-         |  with the 'configurationName' setting given that it is not "default"""".stripMargin)
+                             | Specify the desired configuration directory name
+                             |  with the 'configurationName' setting given that it is not "default"""".stripMargin)
     IO.createDirectory(configurationTarget)
+    if (generatedConf.nonEmpty) writeConfig(configurationTarget, generatedConf)
     IO.copyDirectory(srcDir, configurationTarget, overwrite = true, preserveLastModified = true)
     configurationTarget
   }

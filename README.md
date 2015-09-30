@@ -52,10 +52,10 @@ Finally, produce a bundle:
 bundle:dist
 ```
 
-It is possible to produce additional configuration bundles that contain an optional bundle.conf the value of which override the main bundle, as
+It is possible to produce additional configuration bundles that contain an optional `bundle.conf` the value of which override the main bundle, as
 well as arbitrary shell scripts. These additional configuration files must be placed in <src>/bundle-configuration/<configurationFolderName>.
 
-The bundle-configuration folder may contain many configurations, the desired configuration can be specified with the setting:
+The bundle-configuration folder may contain many configurations in order to support development style scenarios, the desired configuration can be specified with the setting:
 
 ```
 BundleKeys.configurationName := <configurationFolderName>
@@ -69,14 +69,94 @@ Then, to produce this additional bundle:
 configuration:dist
 ```
 
+> Note that bundle configuration that is generally performed from within sbt is therefore part of the project to support developer use-cases. Operational use-cases where sensitive data is held in configuration is intended to be performed outside of sbt, and in conjunction with the [ConductR CLI](https://github.com/typesafehub/conductr-cli#command-line-interface-cli-for-typesafe-conductr) (specifically the `shazar` command).
+
+### Advanced bundles and configuration
+
+sbt-bundle is capable of producing many bundles and bundle configurations for a given sbt module.
+
+#### Extending bundles
+
+Suppose that you have an sbt module where there are multiple ways in which it can be produced. 
+[ReactiveMaps](https://github.com/typesafehub/ReactiveMaps) is one such example where the one application can be 
+deployed in three ways:
+
+* frontend
+* backend-region
+* backend-summary
+
+Its frontend configuration is expressed in the regular way i.e. within the global scope:
+
+```scala
+
+// Main bundle configuration
+
+normalizedName := "reactive-maps-frontend"
+BundleKeys.nrOfCpus := 2.0
+...
+```
+
+Thus a regular `bundle:dist` will produce the frontend bundle. 
+
+We can then extend the bundle configuration and overlay some new values for a different target. Here's a sample
+of what the backend-region target looks like:
+
+```scala
+
+lazy val BackendRegion = config("backend-region").extend(Bundle)
+SbtBundle.bundleSettings(BackendRegion)
+inConfig(BackendRegion)(Seq(
+  normalizedName := "reactive-maps-backend-region",
+  BundleKeys.configurationName := (normalizedName in BackendRegion).value,
+  ...
+))
+```
+
+A new configuration is created that extends the regular `Bundle` one for the purposes of delegating sbt settings.
+Therefore anything declared within the `inConfig` function will have precedence over that which is declared in the
+`Bundle` sbt configuration. The `bundleSettings` function defines a few important settings that you need.
+
+To produce the above bundle then becomes a matter of just `backend-region:dist`.
+
+#### Extending bundle configurations
+
+The optional `bundle.conf` file can either be provided directly, or be generated via sbt settings. The following shows
+how to create an sbt configuration and then define `bundle.conf` settings. The settings are for a fictitious `backend`
+configuration that overrides the bundle name and the roles:
+
+```scala
+lazy val Backend = config("backend").extend(BundleConfiguration)
+SbtBundle.configurationSettings(Backend)
+inConfig(Backend)(Seq(
+  normalizedName := "reactive-maps-backend",
+  roles := Set("big-backend-server")
+))
+```
+
+Note the distinction between the `configurationSettings` and `bundleSettings` for bundle configurations and bundles 
+respectively.
+
+You must also associate the configuration with your project:
+
+```
+lazy val root = (project in file("."))
+  .enablePlugins(JavaAppPackaging)
+  .configs(Backend)
+```
+
+A configuration for the above can then be generated:
+
+```
+backend:dist
+```
 ## ConductR 1.0
 
 ConductR 1.0 did not hold the notion of a `compatibilityVersion` or a `systemVersion`. Instead, sbt-bundle 1.0 encoded these versions into
 a bundle's `name` and the `system` name `bundle.conf` properties. Therefore if you use sbt-bundle 1.1 with ConductR 1.0 then you may
-want to encode these versions within your build file. This can be conveniently achieved easily using the following expression:
+want to encode these versions within your build file. This can be conveniently achieved using the following expression:
 
 ```scala
-normalizedName in Bundle := (NativePackagerKeys.packageName in Bundle).value
+NativePackagerKeys.packageName in Bundle := (NativePackagerKeys.packageName in Universal).value
 ```
 
 
@@ -94,6 +174,7 @@ compatibilityVersion | A versioning scheme that will be included in a bundle's n
 configurationName    | The name of the directory of the additional configuration to use. Defaults to 'default'
 diskSpace            | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
 endpoints            | Declares endpoints using an `Endpoint(protocol, bindPort, services)` structure. The default is `Map("web" -> Endpoint("http", services = Set(URI(s"http://:9000"))))` where the key is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
+executableScriptPath | The relative path of the executableScript within the bundle.
 memory               | The amount of memory required to run the bundle.
 nrOfCpus             | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
 roles                | The types of node in the cluster that this bundle can be deployed to. Defaults to "web".
