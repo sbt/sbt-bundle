@@ -13,7 +13,7 @@ The plugin will take a Universal or Docker package that you have presently confi
 Declare the plugin (typically in a `plugins.sbt`):
 
 ```scala
-addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "1.1.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-bundle" % "1.2.0")
 ```
 
 Declaring the native packager or any of its other plugins should be sufficient. For example, in your `build.sbt` file:
