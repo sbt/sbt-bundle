@@ -331,12 +331,12 @@ object SbtBundle extends AutoPlugin {
     val formatted =
       for {
         (label, Endpoint(bindProtocol, bindPort, services)) <- endpoints
-      } yield s"""|  "$label" = {
-                  |    bind-protocol  = "$bindProtocol"
-                  |    bind-port = $bindPort
-                  |    services  = ${formatSeq(services.map(_.toString))}
-                  |  }""".stripMargin
-    formatted.mkString(f"{%n", f",%n", f"%n}")
+      } yield s"""|      "$label" = {
+                  |        bind-protocol = "$bindProtocol"
+                  |        bind-port     = $bindPort
+                  |        services      = ${formatSeq(services.map(_.toString))}
+                  |      }""".stripMargin
+    formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
 
   private def getConfig(config: Configuration, forAllSettings: Boolean): Def.Initialize[Task[String]] = Def.task {
@@ -350,13 +350,15 @@ object SbtBundle extends AutoPlugin {
             checkInitialDelayValue.toSeconds
         Seq(
           value.map(uri => s""""$uri"""").mkString(
-            s"""components."${(normalizedName in config).value}-status" = {
-               |  description      = "Status check for the bundle component"
-               |  file-system-type = "universal"
-               |  start-command    = ["check", "--initial-delay", "$checkInitialDelayInSeconds", """.stripMargin,
+            s"""components = {
+               |  ${(normalizedName in config).value}-status = {
+               |    description      = "Status check for the bundle component"
+               |    file-system-type = "universal"
+               |    start-command    = ["check", "--initial-delay", "$checkInitialDelayInSeconds", """.stripMargin,
             ", ",
             s"""]
-               |  endpoints        = {}
+               |    endpoints        = {}
+               |  }
                |}""".stripMargin)
         )
       case _ =>
@@ -375,19 +377,21 @@ object SbtBundle extends AutoPlugin {
     val componentPrefix = s"""components."${(normalizedName in config).value}""""
 
     val declarations =
-      Seq("""version = "1.1.0"""") ++
-        formatValue("""name = "%s"""", (normalizedNameConfigName in config).value) ++
+      Seq("""version              = "1.1.0"""") ++
+        formatValue("""name                 = "%s"""", (normalizedNameConfigName in config).value) ++
         formatValue("""compatibilityVersion = "%s"""", (compatibilityVersionConfigName in config).value) ++
-        formatValue("""system = "%s"""", (systemConfigName in config).value) ++
-        formatValue("""systemVersion = "%s"""", (systemVersionConfigName in config).value) ++
-        formatValue("nrOfCpus = %s", (nrOfCpusConfigName in config).value) ++
-        formatValue("memory = %s", toString((memoryConfigName in config).value, (v: Bytes) => v.underlying.toString)) ++
-        formatValue("diskSpace = %s", toString((diskSpaceConfigName in config).value, (v: Bytes) => v.underlying.toString)) ++
-        formatValue(s"roles = %s", toString((rolesConfigName in config).value, (v: Set[String]) => formatSeq(v))) ++
-        formatValue(s"""$componentPrefix.description = "%s"""", toString((projectInfoConfigName in config).value, (v: ModuleInfo) => v.description)) ++
-        formatValue(s"""$componentPrefix."file-system-type" = "%s"""", (bundleTypeConfigName in config).value) ++
-        formatValue(s"""$componentPrefix."start-command" = %s""", toString((startCommandConfigName in config).value, (v: Seq[String]) => formatSeq(v))) ++
-        formatValue(s"""$componentPrefix.endpoints = %s""", toString((endpointsConfigName in config).value, (v: Map[String, Endpoint]) => formatEndpoints(v))) ++
+        formatValue("""system               = "%s"""", (systemConfigName in config).value) ++
+        formatValue("""systemVersion        = "%s"""", (systemVersionConfigName in config).value) ++
+        formatValue("nrOfCpus             = %s", (nrOfCpusConfigName in config).value) ++
+        formatValue("memory               = %s", toString((memoryConfigName in config).value, (v: Bytes) => v.underlying.toString)) ++
+        formatValue("diskSpace            = %s", toString((diskSpaceConfigName in config).value, (v: Bytes) => v.underlying.toString)) ++
+        formatValue(s"roles                = %s", toString((rolesConfigName in config).value, (v: Set[String]) => formatSeq(v))) ++
+        Seq("components = {", s"  ${(normalizedName in config).value} = {") ++
+        formatValue(s"""    description      = "%s"""", toString((projectInfoConfigName in config).value, (v: ModuleInfo) => v.description)) ++
+        formatValue(s"""    file-system-type = "%s"""", (bundleTypeConfigName in config).value) ++
+        formatValue(s"""    start-command    = %s""", toString((startCommandConfigName in config).value, (v: Seq[String]) => formatSeq(v))) ++
+        formatValue(s"""    endpoints = %s""", toString((endpointsConfigName in config).value, (v: Map[String, Endpoint]) => formatEndpoints(v))) ++
+        Seq("  }", "}") ++
         checkComponents
 
     declarations.mkString("\n")

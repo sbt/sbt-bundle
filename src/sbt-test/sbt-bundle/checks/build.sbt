@@ -19,30 +19,36 @@ val checkBundleConf = taskKey[Unit]("")
 
 checkBundleConf := {
   val contents = IO.read(target.value / "bundle" / "bundle" / "tmp" / "bundle.conf")
-  val expectedContents = """|version = "1.1.0"
-                            |name = "simple-test"
+  val expectedContents = """|version              = "1.1.0"
+                            |name                 = "simple-test"
                             |compatibilityVersion = "0"
-                            |system = "simple-test"
-                            |systemVersion = "0"
-                            |nrOfCpus = 1.0
-                            |memory = 67108864
-                            |diskSpace = 10000000
-                            |roles = ["web"]
-                            |components."simple-test".description = "simple-test"
-                            |components."simple-test"."file-system-type" = "universal"
-                            |components."simple-test"."start-command" = ["simple-test/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
-                            |components."simple-test".endpoints = {
-                            |  "web" = {
-                            |    bind-protocol  = "http"
-                            |    bind-port = 0
-                            |    services  = ["http://:9000"]
+                            |system               = "simple-test"
+                            |systemVersion        = "0"
+                            |nrOfCpus             = 1.0
+                            |memory               = 67108864
+                            |diskSpace            = 10000000
+                            |roles                = ["web"]
+                            |components = {
+                            |  simple-test = {
+                            |    description      = "simple-test"
+                            |    file-system-type = "universal"
+                            |    start-command    = ["simple-test/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
+                            |    endpoints = {
+                            |      "web" = {
+                            |        bind-protocol = "http"
+                            |        bind-port     = 0
+                            |        services      = ["http://:9000"]
+                            |      }
+                            |    }
                             |  }
                             |}
-                            |components."simple-test-status" = {
-                            |  description      = "Status check for the bundle component"
-                            |  file-system-type = "universal"
-                            |  start-command    = ["check", "--initial-delay", "2", "$WEB_HOST?retry-count=5&retry-delay=3"]
-                            |  endpoints        = {}
+                            |components = {
+                            |  simple-test-status = {
+                            |    description      = "Status check for the bundle component"
+                            |    file-system-type = "universal"
+                            |    start-command    = ["check", "--initial-delay", "2", "$WEB_HOST?retry-count=5&retry-delay=3"]
+                            |    endpoints        = {}
+                            |  }
                             |}""".stripMargin
   contents should include(expectedContents)
 }

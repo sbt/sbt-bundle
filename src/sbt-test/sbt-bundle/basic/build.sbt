@@ -20,33 +20,37 @@ val checkBundleConf = taskKey[Unit]("")
 
 checkBundleConf := {
   val contents = IO.read((target in Bundle).value / "bundle" / "tmp" / "bundle.conf")
-  val expectedContents = """|version = "1.1.0"
-                            |name = "simple-test"
+  val expectedContents = """|version              = "1.1.0"
+                            |name                 = "simple-test"
                             |compatibilityVersion = "0"
-                            |system = "simple-test"
-                            |systemVersion = "0"
-                            |nrOfCpus = 1.0
-                            |memory = 67108864
-                            |diskSpace = 10000000
-                            |roles = ["web-server"]
-                            |components."simple-test".description = "simple-test"
-                            |components."simple-test"."file-system-type" = "universal"
-                            |components."simple-test"."start-command" = ["simple-test/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
-                            |components."simple-test".endpoints = {
-                            |  "web" = {
-                            |    bind-protocol  = "http"
-                            |    bind-port = 0
-                            |    services  = ["http://:9000"]
-                            |  },
-                            |  "other" = {
-                            |    bind-protocol  = "http"
-                            |    bind-port = 0
-                            |    services  = ["http://:9001/simple-test"]
-                            |  },
-                            |  "akka-remote" = {
-                            |    bind-protocol  = "tcp"
-                            |    bind-port = 0
-                            |    services  = []
+                            |system               = "simple-test"
+                            |systemVersion        = "0"
+                            |nrOfCpus             = 1.0
+                            |memory               = 67108864
+                            |diskSpace            = 10000000
+                            |roles                = ["web-server"]
+                            |components = {
+                            |  simple-test = {
+                            |    description      = "simple-test"
+                            |    file-system-type = "universal"
+                            |    start-command    = ["simple-test/bin/simple-test", "-J-Xms67108864", "-J-Xmx67108864"]
+                            |    endpoints = {
+                            |      "web" = {
+                            |        bind-protocol = "http"
+                            |        bind-port     = 0
+                            |        services      = ["http://:9000"]
+                            |      },
+                            |      "other" = {
+                            |        bind-protocol = "http"
+                            |        bind-port     = 0
+                            |        services      = ["http://:9001/simple-test"]
+                            |      },
+                            |      "akka-remote" = {
+                            |        bind-protocol = "tcp"
+                            |        bind-port     = 0
+                            |        services      = []
+                            |      }
+                            |    }
                             |  }
                             |}""".stripMargin
   contents should include(expectedContents)
