@@ -75,6 +75,23 @@ configuration:dist
 
 sbt-bundle is capable of producing many bundles and bundle configurations for a given sbt module.
 
+#### Adding Java options
+
+Suppose you need to add Java options to your start command. You'll need to do this, say, to get a Play application binding to the correct IP address and port (supposing that the endpoint is named "web"):
+
+```scala
+javaOptions in Bundle ++= Seq("-Dhttp.address=$WEB_BIND_IP", "-Dhttp.port=$WEB_BIND_PORT")
+```
+
+#### Renaming an executable
+
+Sometimes you need to invoke something other than the script that the native packager assumes. For example, if you have a script in the bin folder named `start.sh`, and it isn't expecting any Java options:
+
+```scala
+BundleKeys.executableScriptPath in Bundle := (file((normalizedName in Bundle).value) / "bin" / "start.sh").getPath
+javaOptions in Bundle := Seq.empty
+```
+
 #### Extending bundles
 
 Suppose that you have an sbt module where there are multiple ways in which it can be produced. 
@@ -149,16 +166,6 @@ A configuration for the above can then be generated:
 ```
 backend:dist
 ```
-## ConductR 1.0
-
-ConductR 1.0 did not hold the notion of a `compatibilityVersion` or a `systemVersion`. Instead, sbt-bundle 1.0 encoded these versions into
-a bundle's `name` and the `system` name `bundle.conf` properties. Therefore if you use sbt-bundle 1.1 with ConductR 1.0 then you may
-want to encode these versions within your build file. This can be conveniently achieved using the following expression:
-
-```scala
-NativePackagerKeys.packageName in Bundle := (NativePackagerKeys.packageName in Universal).value
-```
-
 
 ## Settings
 
