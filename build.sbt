@@ -32,6 +32,9 @@ publishMavenStyle := false
 bintrayPublishSettings
 repository in bintray := "sbt-plugins"
 bintrayOrganization in bintray := Some("sbt-bundle")
+libraryDependencies ++= List(
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+)
 
 scriptedSettings
 scriptedLaunchOpts <+= version apply { v => s"-Dproject.version=$v" }
