@@ -189,7 +189,7 @@ object SbtBundle extends AutoPlugin {
   def bundleSettings(config: Configuration): Seq[Setting[_]] =
     inConfig(config)(Seq(
       bundleConf := getConfig(config, forAllSettings = true).value,
-      executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in Universal).value).getPath,
+      executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in config).value).getPath,
       NativePackagerKeys.packageName := (normalizedName in config).value + "-v" + (compatibilityVersion in config).value,
       NativePackagerKeys.dist := Def.taskDyn {
         Def.task {
@@ -213,7 +213,7 @@ object SbtBundle extends AutoPlugin {
       bundleConf := getConfig(config, forAllSettings = false).value,
       checks := Seq.empty,
       compatibilityVersion := (version in config).value.takeWhile(_ != '.'),
-      executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in Universal).value).getPath,
+      executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in config).value).getPath,
       NativePackagerKeys.dist := Def.taskDyn {
         Def.task {
           createConfiguration(config)
@@ -226,7 +226,7 @@ object SbtBundle extends AutoPlugin {
       }.value,
       NativePackagerKeys.stagingDirectory := (target in config).value / "stage",
       target := projectTarget.value / "bundle-configuration",
-      sourceDirectory := (sourceDirectory in Universal).value.getParentFile / "bundle-configuration"
+      sourceDirectory := (sourceDirectory in config).value.getParentFile / "bundle-configuration"
     )) ++ configNameSettings(config)
 
   private val projectTarget = settingKey[File]("")
