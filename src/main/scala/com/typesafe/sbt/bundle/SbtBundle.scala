@@ -16,6 +16,7 @@ object Import {
 
   /**
    * Represents a service endpoint.
+   *
    * @param bindProtocol the protocol to bind for this endpoint, e.g. "http"
    * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
    * @param services the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
@@ -78,6 +79,11 @@ object Import {
       """Declares endpoints. The default is Map("web" -> Endpoint("http", 0, Set("http://:9000"))) where the service name is the name of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example."""
     )
 
+    val overrideEndpoints = TaskKey[Option[Map[String, Endpoint]]](
+      "bundle-override-endpoints",
+      "Overrides the endpoints settings key with new endpoints. This task should be used if the endpoints need to be specified programmatically. The default is None."
+    )
+
     val checkInitialDelay = SettingKey[FiniteDuration](
       "bundle-check-initial-delay",
       "Initial delay before the check uris are triggered. The 'FiniteDuration' value gets rounded up to full seconds. Default is 3 seconds."
@@ -138,6 +144,8 @@ object Import {
   val Bundle = config("bundle") extend Universal
 
   val BundleConfiguration = config("configuration") extend Universal
+
+  val DefaultEndpoints = Map("web" -> Endpoint("http", 0, Set(URI("http://:9000"))))
 }
 
 object SbtBundle extends AutoPlugin {
@@ -149,10 +157,9 @@ object SbtBundle extends AutoPlugin {
   val autoImport = Import
 
   private final val Sha256 = "SHA-256"
+  private final val Utf8 = Charset.forName("utf-8")
 
-  private val utf8 = Charset.forName("utf-8")
-
-  override def `requires` = SbtNativePackager
+  override def requires = SbtNativePackager
 
   override def trigger = AllRequirements
 
@@ -164,7 +171,7 @@ object SbtBundle extends AutoPlugin {
         checks := Seq.empty,
         compatibilityVersion := (version in Bundle).value.takeWhile(_ != '.'),
         configurationName := "default",
-        endpoints := Map("web" -> Endpoint("http", 0, Set(URI("http://:9000")))),
+        endpoints := DefaultEndpoints,
         javaOptions in Bundle ++= Seq(
           s"-J-Xms${(memory in Bundle).value.round1k.underlying}",
           s"-J-Xmx${(memory in Bundle).value.round1k.underlying}"
@@ -247,9 +254,10 @@ object SbtBundle extends AutoPlugin {
 
   private def configNameSettings(config: Configuration): Seq[Setting[_]] =
     inConfig(config)(Seq(
+      overrideEndpoints := None,
       bundleTypeConfigName := (bundleType in config).value -> toConfigName(bundleType in (thisProjectRef.value, config), state.value),
       diskSpaceConfigName := (diskSpace in config).value -> toConfigName(diskSpace in (thisProjectRef.value, config), state.value),
-      endpointsConfigName := (endpoints in config).value -> toConfigName(endpoints in (thisProjectRef.value, config), state.value),
+      endpointsConfigName := collectEndpoints(config).value -> toConfigName(endpoints in (thisProjectRef.value, config), state.value),
       memoryConfigName := (memory in config).value -> toConfigName(memory in (thisProjectRef.value, config), state.value),
       projectInfoConfigName := (projectInfo in config).value -> toConfigName(projectInfo in (thisProjectRef.value, config), state.value),
       rolesConfigName := (roles in config).value -> toConfigName(roles in (thisProjectRef.value, config), state.value),
@@ -290,6 +298,12 @@ object SbtBundle extends AutoPlugin {
       (configurationName in config).value,
       bundleMappings,
       f => streams.value.log.info(s"Bundle configuration has been created: $f"))
+  }
+
+  // By default use the BundleKeys.endpoints settings key as endpoints
+  // Override this method to change behaviour how to collect the endpoints
+  private def collectEndpoints(config: Configuration): Def.Initialize[Task[Map[String, Endpoint]]] = Def.task {
+    (overrideEndpoints in config).value.getOrElse((endpoints in config).value)
   }
 
   private def shazar(archiveTarget: File,
@@ -421,7 +435,7 @@ object SbtBundle extends AutoPlugin {
 
   private def writeConfig(target: File, contents: String): File = {
     val configFile = target / "bundle.conf"
-    IO.write(configFile, contents, utf8)
+    IO.write(configFile, contents, Utf8)
     configFile
   }
 }

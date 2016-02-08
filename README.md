@@ -181,6 +181,7 @@ compatibilityVersion | A versioning scheme that will be included in a bundle's n
 configurationName    | The name of the directory of the additional configuration to use. Defaults to 'default'
 diskSpace            | The amount of disk space required to host an expanded bundle and configuration. Append the letter k or K to indicate kilobytes, or m or M to indicate megabytes. Required.
 endpoints            | Declares endpoints using an `Endpoint(protocol, bindPort, services)` structure. The default is `Map("web" -> Endpoint("http", services = Set(URI(s"http://:9000"))))` where the key is the `name` of this project. The "web" key is used to form a set of environment variables for your components. For example you will have a `WEB_BIND_PORT` in this example.
+overrideEndpoints    | Overrides the endpoints settings key with new endpoints. This task should be used if the endpoints need to be specified programmatically. The default is None.
 executableScriptPath | The relative path of the executableScript within the bundle.
 memory               | The amount of memory required to run the bundle.
 nrOfCpus             | The number of cpus required to run the bundle (can be fractions thereby expressing a portion of CPU). Required.
