@@ -11,17 +11,179 @@ import SbtNativePackager.Universal
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+import scala.util.matching.Regex
 
 object Import {
+
+  /**
+    * Common interface which describes request mapping.
+    */
+  trait RequestMapping
+
+  /**
+    * Common interface which describes HTTP based request mapping
+    */
+  trait HttpRequestMapping extends RequestMapping {
+    def method: Option[String]
+    def rewrite: Option[String]
+  }
+
+  /**
+    * Common interface which describes request mapping(s) that can be exposed by a service endpoint, i.e. sequence of
+    * HTTP paths in case of HTTP-based endpoint, or set of ports in case of TCP-based endpoint
+    */
+  trait ProtocolFamilyRequestMapping {
+    def protocolFamily: String
+  }
+
+  object Http {
+    /**
+      * Represents HTTP methods
+      */
+    object Method extends Enumeration {
+      val GET, POST, PUT, DELETE, HEAD, TRACE, CONNECT = Value
+    }
+
+    implicit def method(m: String): Method.Value =
+      Method.withName(m)
+
+    case class Request(method: Option[Method.Value], path: Either[String, Regex], rewrite: Option[String])
+
+    implicit def request1(r: String): Request =
+      Request(None, Left(r), None)
+    implicit def regexRequest1(r: Regex): Request =
+      Request(None, Right(r), None)
+
+    implicit def request2(r: (String, String)): Request =
+      Request(Some(r._1), Left(r._2), None)
+    implicit def regexRequest2(r: (String, Regex)): Request =
+      Request(Some(r._1), Right(r._2), None)
+
+    implicit def request3(r: ((String, String), String)): Request =
+      Request(Some(r._1._1), Left(r._1._2), Some(r._2))
+    implicit def regexRequest3(r: ((String, Regex), String)): Request =
+      Request(Some(r._1._1), Right(r._1._2), Some(r._2))
+  }
+
+  /**
+    * Represents HTTP request mapping, i.e. sequence of HTTP path(s) exposed by a service endpoint
+    *
+    * @param requestMappings sequence of HTTP path(s) exposed by a service endpoint
+    */
+  case class Http(requestMappings: Http.Request*) extends ProtocolFamilyRequestMapping {
+    val protocolFamily = "http"
+  }
+
+  object Tcp {
+    /**
+      * Represents TCP port exposed by a service endpoint
+ *
+      * @param port tcp port exposed by the service endpoint
+      */
+    case class Request(port: Int) extends RequestMapping
+
+    /**
+      * Represents TCP request mapping, i.e. set of TCP port(s) exposed by a service endpoint
+ *
+      * @param ports set of TCP port(s) exposed by a service endpoint
+      */
+    def apply(ports: Int*): Tcp =
+      Tcp(ports.toSet.map(Tcp.Request))
+  }
+
+  /**
+    * Represents TCP request mapping, i.e. set of TCP port(s) exposed by a service endpoint
+ *
+    * @param requestMappings set of TCP port(s) exposed by a service endpoint
+    */
+  case class Tcp(requestMappings: Set[Tcp.Request]) extends ProtocolFamilyRequestMapping {
+    val protocolFamily = "tcp"
+  }
+
+  object Udp {
+    /**
+      * Represents UDP port exposed by a service endpoint
+      *
+      * @param port udp port exposed by the service endpoint
+      */
+    case class Request(port: Int) extends RequestMapping
+
+    /**
+      * Represents UDP request mapping, i.e. set of UDP port(s) exposed by a service endpoint
+ *
+      * @param ports set of UDP port(s) exposed by a service endpoint
+      */
+    def apply(ports: Int*): Udp =
+      Udp(ports.toSet.map(Udp.Request))
+  }
+
+  /**
+    * Represents UDP request mapping, i.e. set of UDP port(s) exposed by a service endpoint
+ *
+    * @param requestMappings set of UDP port(s) exposed by a service endpoint
+    */
+  case class Udp(requestMappings: Set[Udp.Request]) extends ProtocolFamilyRequestMapping {
+    val protocolFamily = "udp"
+  }
+
+  object RequestAcl {
+    /**
+      * Represents a set of request ACL exposed by a service endpoint.
+      * Request ACL can be either a sequence of HTTP paths or set of TCP ports.
+ *
+      * @param protocolFamilyRequestMappings request ACL exposed by a service endpoint
+      */
+    def apply(protocolFamilyRequestMappings: ProtocolFamilyRequestMapping*): RequestAcl =
+      RequestAcl(protocolFamilyRequestMappings.toSet)
+  }
+
+  /**
+    * Represents a set of request ACL exposed by a service endpoint.
+    * Request ACL can be either a sequence of HTTP paths or set of TCP ports.
+ *
+    * @param protocolFamilyRequestMappings request ACL exposed by a service endpoint
+    */
+  case class RequestAcl(protocolFamilyRequestMappings: Set[ProtocolFamilyRequestMapping])
+
+  object Endpoint {
+    /**
+     * Represents a service endpoint.
+ *
+     * @param bindProtocol the protocol to bind for this endpoint, e.g. "http"
+     * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
+     * @param services the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
+     */
+    @deprecated("services are deprecated in favour of ACLs", since = "1.3.0")
+    def apply(bindProtocol: String, bindPort: Int = 0, services: Set[URI] = Set.empty): Endpoint =
+      new Endpoint(bindProtocol, bindPort, Some(services), None, None)
+
+    /**
+      * Represents a service endpoint.
+ *
+      * @param bindProtocol the protocol to bind for this endpoint, e.g. "http"
+      * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
+      * @param serviceName the name of the service exposed by this service endpoint
+      * @param acls list of protocol and its corresponding paths (for http) or ports (for tcp) exposed by the service endpoint
+      */
+    def apply(bindProtocol: String, bindPort: Int, serviceName: String, acls: RequestAcl*): Endpoint =
+      new Endpoint(bindProtocol, bindPort, None, Some(serviceName), Some(acls.toSet))
+  }
 
   /**
    * Represents a service endpoint.
    *
    * @param bindProtocol the protocol to bind for this endpoint, e.g. "http"
    * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
-   * @param services the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
+   * @param services **deprecated** - the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
+   * @param serviceName the name of the service exposed by this service endpoint
+   * @param acls list of protocol and its corresponding paths (for http) or ports (for tcp) exposed by the service endpoint
    */
-  case class Endpoint(bindProtocol: String, bindPort: Int = 0, services: Set[URI] = Set.empty)
+  case class Endpoint(
+    bindProtocol: String,
+    bindPort: Int,
+    @deprecated("services are deprecated in favour of ACLs", since = "1.3.0") services: Option[Set[URI]],
+    serviceName: Option[String],
+    acls: Option[Set[RequestAcl]])
 
   object BundleKeys {
 
@@ -338,18 +500,115 @@ object SbtBundle extends AutoPlugin {
     }
   }
 
+  object PathMatching {
+    val ValidUriCharacters = """^[a-zA-Z0-9-._]+$"""
+
+    private [bundle] def pathConfigKeyValue(path: Either[String, Regex]): (String, String) = {
+      path match {
+        case Left(value) =>
+          "path" -> value
+
+        case Right(value) if value.pattern.pattern.startsWith("^/") && !value.pattern.pattern.endsWith("$") =>
+          val pathBeg = value.pattern.pattern.tail
+
+          val isValidPathBegPattern = !pathBeg.contains("//") &&
+            pathBeg.split("/").forall(v => v.isEmpty || v.matches(ValidUriCharacters))
+
+          if (isValidPathBegPattern)
+            "path-beg" -> pathBeg
+          else
+            throw new IllegalArgumentException(s"${value.pattern.pattern} is not a valid pattern for path beg")
+
+        case Right(value) =>
+          "path-regex" -> value.pattern.pattern
+      }
+    }
+  }
+
+
+  private def formatHttpRequestMapping(requestMapping: Http.Request): String = {
+    val (pathConfigKey, pathConfigValue) = PathMatching.pathConfigKeyValue(requestMapping.path)
+    val lines =
+      Seq(
+        Option(s"""$pathConfigKey = "$pathConfigValue""""),
+        requestMapping.method.map(v => s"""method = "$v""""),
+        requestMapping.rewrite.map(v => s"""rewrite = "$v""""))
+        .collect {
+          case Some(value) => value
+        }
+        .map(v => s"                  $v")
+        .mkString("\n")
+
+    s"""                {
+       |$lines
+       |                }""".stripMargin
+  }
+
+  private def formatHttpRequestMappings(requestMappings: Http): String =
+    s"""            ${requestMappings.protocolFamily} = {
+       |              requests = [
+       |${requestMappings.requestMappings.map(formatHttpRequestMapping).mkString(",\n")}
+       |              ]
+       |            }""".stripMargin
+
+  private def formatTcpRequestMappings(requestMappings: Tcp): String =
+    s"""            ${requestMappings.protocolFamily} = {
+       |              requests = [${requestMappings.requestMappings.map(_.port).mkString(", ")}]
+       |            }""".stripMargin
+
+  private def formatUdpRequestMappings(requestMappings: Udp): String =
+    s"""            ${requestMappings.protocolFamily} = {
+       |              requests = [${requestMappings.requestMappings.map(_.port).mkString(", ")}]
+       |            }""".stripMargin
+
+  private def formatRequestMappings(requestMappings: ProtocolFamilyRequestMapping): String =
+    requestMappings match {
+      case v: Http => formatHttpRequestMappings(v)
+      case v: Tcp  => formatTcpRequestMappings(v)
+      case v: Udp  => formatUdpRequestMappings(v)
+    }
+
+  private def formatAcl(acl: RequestAcl): String =
+    s"""          {
+       |${acl.protocolFamilyRequestMappings.map(formatRequestMappings).mkString(",\n")}
+       |          }""".stripMargin
+
+  private def formatAcls(acls: Set[RequestAcl]): String =
+    s"""        acls          = [
+      |${acls.map(formatAcl).mkString(",\n")}
+      |        ]""".stripMargin
+
   private def formatSeq(strings: Iterable[String]): String =
     strings.map(s => s""""$s"""").mkString("[", ", ", "]")
+
+  private def formatServices(services: Set[URI]): String =
+    s"        services      = ${formatSeq(services.map(_.toString))}"
+
+  private def formatServiceName(serviceName: String): String =
+    s"""        service-name  = "$serviceName""""
 
   private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
-        (label, Endpoint(bindProtocol, bindPort, services)) <- endpoints
-      } yield s"""|      "$label" = {
-                  |        bind-protocol = "$bindProtocol"
-                  |        bind-port     = $bindPort
-                  |        services      = ${formatSeq(services.map(_.toString))}
-                  |      }""".stripMargin
+        (label, Endpoint(bindProtocol, bindPort, services, serviceName, acls)) <- endpoints
+      } yield {
+        val servicesOrAcls =
+          Seq(
+            serviceName.map(formatServiceName),
+            services.map(formatServices),
+            acls.map(formatAcls)
+          ).collect {
+            case Some(value) => value
+          }
+          .mkString("\n")
+
+        s"""|      "$label" = {
+            |        bind-protocol = "$bindProtocol"
+            |        bind-port     = $bindPort
+            |$servicesOrAcls
+            |      }""".stripMargin
+      }
+
     formatted.mkString(f"{%n", f",%n", f"%n    }")
   }
 

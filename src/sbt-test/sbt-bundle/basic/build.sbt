@@ -15,6 +15,22 @@ BundleKeys.roles := Set("web-server")
 
 BundleKeys.endpoints += "other" -> Endpoint("http", 0, Set(URI("http://:9001/simple-test")))
 BundleKeys.endpoints += "akka-remote" -> Endpoint("tcp")
+BundleKeys.endpoints += "extras" -> Endpoint("http", 0, "ping-service",
+  RequestAcl(
+    Http(
+      "/bar-1",
+      "GET" -> "/bar-2",
+      "GET" -> "/bar-3" -> "/other-bar-3",
+      "^/beg-1".r,
+      "GET" -> "^/beg-2".r,
+      "GET" -> "^/beg-3".r -> "/other-beg-3",
+      "/regex1/[a|b|c]".r,
+      "GET" -> "/regex2/[a|b|c]".r,
+      "GET" -> "/regex3/[a|b|c]".r -> "/other-regex-3"
+    )),
+  RequestAcl(Tcp(9001, 9002)),
+  RequestAcl(Udp(19001, 19002))
+)
 
 val checkBundleConf = taskKey[Unit]("")
 
@@ -49,6 +65,65 @@ checkBundleConf := {
                             |        bind-protocol = "tcp"
                             |        bind-port     = 0
                             |        services      = []
+                            |      },
+                            |      "extras" = {
+                            |        bind-protocol = "http"
+                            |        bind-port     = 0
+                            |        service-name  = "ping-service"
+                            |        acls          = [
+                            |          {
+                            |            http = {
+                            |              requests = [
+                            |                {
+                            |                  path = "/bar-1"
+                            |                },
+                            |                {
+                            |                  path = "/bar-2"
+                            |                  method = "GET"
+                            |                },
+                            |                {
+                            |                  path = "/bar-3"
+                            |                  method = "GET"
+                            |                  rewrite = "/other-bar-3"
+                            |                },
+                            |                {
+                            |                  path-beg = "/beg-1"
+                            |                },
+                            |                {
+                            |                  path-beg = "/beg-2"
+                            |                  method = "GET"
+                            |                },
+                            |                {
+                            |                  path-beg = "/beg-3"
+                            |                  method = "GET"
+                            |                  rewrite = "/other-beg-3"
+                            |                },
+                            |                {
+                            |                  path-regex = "/regex1/[a|b|c]"
+                            |                },
+                            |                {
+                            |                  path-regex = "/regex2/[a|b|c]"
+                            |                  method = "GET"
+                            |                },
+                            |                {
+                            |                  path-regex = "/regex3/[a|b|c]"
+                            |                  method = "GET"
+                            |                  rewrite = "/other-regex-3"
+                            |                }
+                            |              ]
+                            |            }
+                            |          },
+                            |          {
+                            |            tcp = {
+                            |              requests = [9001, 9002]
+                            |            }
+                            |          },
+                            |          {
+                            |            udp = {
+                            |              requests = [19001, 19002]
+                            |            }
+                            |          }
+                            |        ]
                             |      }
                             |    }
                             |  }
