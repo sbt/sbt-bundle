@@ -7,6 +7,7 @@ lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 name := "simple-test"
 
 version := "0.1.0-SNAPSHOT"
+BundleKeys.bundleConfVersion := BundleConfVersions.V_1_2_0
 
 BundleKeys.nrOfCpus := 1.0
 BundleKeys.memory := 64.MiB
@@ -36,7 +37,7 @@ val checkBundleConf = taskKey[Unit]("")
 
 checkBundleConf := {
   val contents = IO.read((target in Bundle).value / "bundle" / "tmp" / "bundle.conf")
-  val expectedContents = """|version              = "1.1.0"
+  val expectedContents = """|version              = "1.2.0"
                             |name                 = "simple-test"
                             |compatibilityVersion = "0"
                             |system               = "simple-test"
