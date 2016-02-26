@@ -153,7 +153,6 @@ object Import {
      * @param bindPort the port the bundle component’s application or service actually binds to; when this is 0 it will be dynamically allocated (which is the default)
      * @param services the public-facing ways to access the endpoint form the outside world with protocol, port, and/or path
      */
-    @deprecated("services are deprecated in favour of ACLs", since = "1.3.0")
     def apply(bindProtocol: String, bindPort: Int = 0, services: Set[URI] = Set.empty): Endpoint =
       new Endpoint(bindProtocol, bindPort, Some(services), None, None)
 
@@ -181,13 +180,22 @@ object Import {
   case class Endpoint(
     bindProtocol: String,
     bindPort: Int,
-    @deprecated("services are deprecated in favour of ACLs", since = "1.3.0") services: Option[Set[URI]],
+    services: Option[Set[URI]],
     serviceName: Option[String],
     acls: Option[Set[RequestAcl]])
+
+  object BundleConfVersions extends Enumeration {
+    val V_1_1_0 = Value("1.1.0")
+    val V_1_2_0 = Value("1.2.0")
+  }
 
   object BundleKeys {
 
     // Scheduling settings
+    val bundleConfVersion = SettingKey[BundleConfVersions.Value](
+      "bundle-conf-version",
+      "The format of the bundle configuration file to generate. By default this is 1.1.0."
+    )
 
     val system = SettingKey[String](
       "bundle-system",
@@ -328,6 +336,7 @@ object SbtBundle extends AutoPlugin {
   override def projectSettings =
     bundleSettings(Bundle) ++ configurationSettings(BundleConfiguration) ++
       Seq(
+        bundleConfVersion := BundleConfVersions.V_1_1_0,
         bundleType := Universal,
         checkInitialDelay := 3.seconds,
         checks := Seq.empty,
@@ -587,11 +596,16 @@ object SbtBundle extends AutoPlugin {
   private def formatServiceName(serviceName: String): String =
     s"""        service-name  = "$serviceName""""
 
-  private def formatEndpoints(endpoints: Map[String, Endpoint]): String = {
+  private def formatEndpoints(bundleConfVersion: BundleConfVersions.Value, endpoints: Map[String, Endpoint]): String = {
     val formatted =
       for {
         (label, Endpoint(bindProtocol, bindPort, services, serviceName, acls)) <- endpoints
       } yield {
+        if (acls.exists(_.nonEmpty) && bundleConfVersion != BundleConfVersions.V_1_2_0)
+          throw new IllegalArgumentException(s"Invalid configuration for endpoint $label - request ACL may only be specified for bundle.conf version 1.2.0")
+        else if (acls.exists(_.nonEmpty) && services.exists(_.nonEmpty))
+          throw new IllegalArgumentException(s"Invalid configuration for endpoint $label - either Services or Request ACL can be set")
+
         val servicesOrAcls =
           Seq(
             serviceName.map(formatServiceName),
@@ -650,7 +664,7 @@ object SbtBundle extends AutoPlugin {
     val componentPrefix = s"""components."${(normalizedName in config).value}""""
 
     val declarations =
-      Seq("""version              = "1.1.0"""") ++
+      Seq(s"""version              = "${bundleConfVersion.value}"""") ++
         formatValue("""name                 = "%s"""", (normalizedNameConfigName in config).value) ++
         formatValue("""compatibilityVersion = "%s"""", (compatibilityVersionConfigName in config).value) ++
         formatValue("""system               = "%s"""", (systemConfigName in config).value) ++
@@ -663,7 +677,7 @@ object SbtBundle extends AutoPlugin {
         formatValue(s"""    description      = "%s"""", toString((projectInfoConfigName in config).value, (v: ModuleInfo) => v.description)) ++
         formatValue(s"""    file-system-type = "%s"""", (bundleTypeConfigName in config).value) ++
         formatValue(s"""    start-command    = %s""", toString((startCommandConfigName in config).value, (v: Seq[String]) => formatSeq(v))) ++
-        formatValue(s"""    endpoints = %s""", toString((endpointsConfigName in config).value, (v: Map[String, Endpoint]) => formatEndpoints(v))) ++
+        formatValue(s"""    endpoints = %s""", toString((endpointsConfigName in config).value, (v: Map[String, Endpoint]) => formatEndpoints(bundleConfVersion.value, v))) ++
         Seq("  }", "}") ++
         checkComponents
 
