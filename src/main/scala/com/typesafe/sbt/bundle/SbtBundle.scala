@@ -394,7 +394,7 @@ object SbtBundle extends AutoPlugin {
       executableScriptPath := (file((normalizedName in config).value) / "bin" / (executableScriptName in config).value).getPath,
       NativePackagerKeys.dist := Def.taskDyn {
         Def.task {
-          createConfiguration(config)
+          createConfiguration(config, "Bundle configuration has been created")
         }.value
       }.value,
       NativePackagerKeys.stage := Def.taskDyn {
@@ -460,7 +460,13 @@ object SbtBundle extends AutoPlugin {
       f => streams.value.log.info(s"Bundle has been created: $f"))
   }
 
-  private def createConfiguration(config: Configuration): Def.Initialize[Task[File]] = Def.task {
+  /**
+    * Creates a bundle configuration in the specified config target directory
+    * @param config under which the bundle configuration is created
+    * @param message that is printed if the bundle configuration has been successfully created.
+    * @return the created bundle configuration file
+    */
+  def createConfiguration(config: Configuration, message: String): Def.Initialize[Task[File]] = Def.task {
     val bundleTarget = (target in config).value
     val configurationTarget = (NativePackagerKeys.stage in config).value
     val configChildren = recursiveListFiles(Array(configurationTarget), NonDirectoryFilter)
@@ -468,7 +474,7 @@ object SbtBundle extends AutoPlugin {
     shazar(bundleTarget,
       (configurationName in config).value,
       bundleMappings,
-      f => streams.value.log.info(s"Bundle configuration has been created: $f"))
+      f => streams.value.log.info(s"$message: $f"))
   }
 
   @tailrec
@@ -494,13 +500,21 @@ object SbtBundle extends AutoPlugin {
     logMessage: File => Unit): File = {
     val archived = Archives.makeZip(archiveTarget, archiveName, bundleMappings, Some(archiveName))
     val exti = archived.name.lastIndexOf('.')
-    val hash = Hash.toHex(digestFile(archived))
-    val hashName = archived.name.take(exti) + "-" + hash + archived.name.drop(exti)
+    val hashName = archived.name.take(exti) + "-" + hash(digestFile(archived)) + archived.name.drop(exti)
     val hashArchive = archived.getParentFile / hashName
     IO.move(archived, hashArchive)
     logMessage(hashArchive)
     hashArchive
   }
+
+  /**
+    * Create a hash based on a UTF-8 string
+    */
+  def hash(content: String): String =
+    hash(content.getBytes(Utf8))
+
+  private def hash(bytes: Array[Byte]): String =
+    Hash.toHex(bytes)
 
   private def digestFile(f: File): Array[Byte] = {
     val digest = MessageDigest.getInstance(Sha256)
