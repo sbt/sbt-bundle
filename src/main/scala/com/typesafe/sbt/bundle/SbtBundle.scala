@@ -463,12 +463,23 @@ object SbtBundle extends AutoPlugin {
   private def createConfiguration(config: Configuration): Def.Initialize[Task[File]] = Def.task {
     val bundleTarget = (target in config).value
     val configurationTarget = (NativePackagerKeys.stage in config).value
-    val configChildren: List[File] = configurationTarget.listFiles().toList
+    val configChildren = recursiveListFiles(Array(configurationTarget), NonDirectoryFilter)
     val bundleMappings: Seq[(File, String)] = configChildren.flatMap(_.pair(relativeTo(configurationTarget)))
     shazar(bundleTarget,
       (configurationName in config).value,
       bundleMappings,
       f => streams.value.log.info(s"Bundle configuration has been created: $f"))
+  }
+
+  @tailrec
+  private[bundle] def recursiveListFiles(currentDirs: Array[File], filter: FileFilter, files: Array[File] = Array.empty): Array[File] =
+    if(currentDirs.isEmpty)
+      files
+    else
+      recursiveListFiles(currentDirs.flatMap(_.listFiles(DirectoryFilter)), filter, files ++ currentDirs.flatMap(_.listFiles(filter)))
+
+  private[bundle] object NonDirectoryFilter extends FileFilter {
+    def accept(file: File) = !file.isDirectory
   }
 
   // By default use the BundleKeys.endpoints settings key as endpoints
