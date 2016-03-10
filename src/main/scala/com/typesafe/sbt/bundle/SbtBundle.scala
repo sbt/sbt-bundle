@@ -58,6 +58,8 @@ object Import {
       Request(Some(r._1), Left(r._2), None)
     implicit def regexRequest2(r: (String, Regex)): Request =
       Request(Some(r._1), Right(r._2), None)
+    implicit def regexToStringRequest2(r: (Regex, String)): Request =
+      Request(None, Right(r._1), Some(r._2))
 
     implicit def request3(r: ((String, String), String)): Request =
       Request(Some(r._1._1), Left(r._1._2), Some(r._2))

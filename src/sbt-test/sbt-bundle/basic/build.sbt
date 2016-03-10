@@ -25,9 +25,11 @@ BundleKeys.endpoints += "extras" -> Endpoint("http", 0, "ping-service",
       "^/beg-1".r,
       "GET" -> "^/beg-2".r,
       "GET" -> "^/beg-3".r -> "/other-beg-3",
+      "^/beg-4".r -> "/other-beg-4",
       "/regex1/[a|b|c]".r,
       "GET" -> "/regex2/[a|b|c]".r,
-      "GET" -> "/regex3/[a|b|c]".r -> "/other-regex-3"
+      "GET" -> "/regex3/[a|b|c]".r -> "/other-regex-3",
+      "/regex4/[a|b|c]".r -> "/other-regex-4"
     )),
   RequestAcl(Tcp(9001, 9002)),
   RequestAcl(Udp(19001, 19002))
@@ -100,6 +102,10 @@ checkBundleConf := {
                             |                  rewrite = "/other-beg-3"
                             |                },
                             |                {
+                            |                  path-beg = "/beg-4"
+                            |                  rewrite = "/other-beg-4"
+                            |                },
+                            |                {
                             |                  path-regex = "/regex1/[a|b|c]"
                             |                },
                             |                {
@@ -110,6 +116,10 @@ checkBundleConf := {
                             |                  path-regex = "/regex3/[a|b|c]"
                             |                  method = "GET"
                             |                  rewrite = "/other-regex-3"
+                            |                },
+                            |                {
+                            |                  path-regex = "/regex4/[a|b|c]"
+                            |                  rewrite = "/other-regex-4"
                             |                }
                             |              ]
                             |            }
