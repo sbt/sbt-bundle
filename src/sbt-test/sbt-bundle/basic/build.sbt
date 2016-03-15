@@ -1,6 +1,7 @@
 import ByteConversions._
 import com.typesafe.sbt.bundle.SbtBundle._
 import org.scalatest.Matchers._
+import com.typesafe.config.ConfigFactory
 
 lazy val root = (project in file(".")).enablePlugins(JavaAppPackaging)
 
@@ -22,6 +23,7 @@ BundleKeys.endpoints += "extras" -> Endpoint("http", 0, "ping-service",
       "/bar-1",
       "GET" -> "/bar-2",
       "GET" -> "/bar-3" -> "/other-bar-3",
+      "/bar-4" -> "/other-bar-4",
       "^/beg-1".r,
       "GET" -> "^/beg-2".r,
       "GET" -> "^/beg-3".r -> "/other-beg-3",
@@ -39,6 +41,10 @@ val checkBundleConf = taskKey[Unit]("")
 
 checkBundleConf := {
   val contents = IO.read((target in Bundle).value / "bundle" / "tmp" / "bundle.conf")
+
+  // Ensure content can be parsed into typesafe-config successfully
+  ConfigFactory.parseString(contents)
+
   val expectedContents = """|version              = "1.2.0"
                             |name                 = "simple-test"
                             |compatibilityVersion = "0"
@@ -88,6 +94,10 @@ checkBundleConf := {
                             |                  path = "/bar-3"
                             |                  method = "GET"
                             |                  rewrite = "/other-bar-3"
+                            |                },
+                            |                {
+                            |                  path = "/bar-4"
+                            |                  rewrite = "/other-bar-4"
                             |                },
                             |                {
                             |                  path-beg = "/beg-1"
