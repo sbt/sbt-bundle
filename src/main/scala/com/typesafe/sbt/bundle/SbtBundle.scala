@@ -11,6 +11,7 @@ import SbtNativePackager.Universal
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+import scala.util.Try
 import scala.util.matching.Regex
 
 object Import {
@@ -44,27 +45,50 @@ object Import {
       val GET, POST, PUT, DELETE, HEAD, TRACE, CONNECT = Value
     }
 
-    implicit def method(m: String): Method.Value =
-      Method.withName(m)
+    def method(methodName: String): Method.Value =
+      Method.withName(methodName)
 
     case class Request(method: Option[Method.Value], path: Either[String, Regex], rewrite: Option[String])
 
-    implicit def request1(r: String): Request =
-      Request(None, Left(r), None)
-    implicit def regexRequest1(r: Regex): Request =
-      Request(None, Right(r), None)
+    implicit def request1(path: String): Request =
+      Request(None, Left(path), None)
 
-    implicit def request2(r: (String, String)): Request =
-      Request(Some(r._1), Left(r._2), None)
-    implicit def regexRequest2(r: (String, Regex)): Request =
-      Request(Some(r._1), Right(r._2), None)
-    implicit def regexToStringRequest2(r: (Regex, String)): Request =
-      Request(None, Right(r._1), Some(r._2))
+    implicit def regexRequest1(pathRegex: Regex): Request =
+      Request(None, Right(pathRegex), None)
 
-    implicit def request3(r: ((String, String), String)): Request =
-      Request(Some(r._1._1), Left(r._1._2), Some(r._2))
-    implicit def regexRequest3(r: ((String, Regex), String)): Request =
-      Request(Some(r._1._1), Right(r._1._2), Some(r._2))
+    implicit def request2(requestMapping: (String, String)): Request = {
+      val (methodNameOrPath, pathOrRewrite) = requestMapping
+      Try(method(methodNameOrPath))
+        .map(httpMethod => Request(Some(httpMethod), path = Left(pathOrRewrite), None))
+        .getOrElse {
+          methodNameOrPath match {
+            case path if path.startsWith("/") =>
+              Request(None, Left(path), rewrite = Some(pathOrRewrite))
+            case invalidPath =>
+              throw new IllegalArgumentException(s"The value $invalidPath is not a valid path")
+          }
+        }
+    }
+
+    implicit def regexRequest2(requestMapping: (String, Regex)): Request = {
+      val (methodName, pathRegex) = requestMapping
+      Request(Some(method(methodName)), Right(pathRegex), None)
+    }
+
+    implicit def regexToStringRequest2(requestMapping: (Regex, String)): Request = {
+      val (pathRegex, rewrite) = requestMapping
+      Request(None, Right(pathRegex), Some(rewrite))
+    }
+
+    implicit def request3(requestMapping: ((String, String), String)): Request = {
+      val ((methodName, path), rewrite) = requestMapping
+      Request(Some(method(methodName)), Left(path), Some(rewrite))
+    }
+
+    implicit def regexRequest3(requestMapping: ((String, Regex), String)): Request = {
+      val ((methodName, pathRegex), rewrite) = requestMapping
+      Request(Some(method(methodName)), Right(pathRegex), Some(rewrite))
+    }
   }
 
   /**
@@ -464,6 +488,7 @@ object SbtBundle extends AutoPlugin {
 
   /**
     * Creates a bundle configuration in the specified config target directory
+    *
     * @param config under which the bundle configuration is created
     * @param message that is printed if the bundle configuration has been successfully created.
     * @return the created bundle configuration file
@@ -562,13 +587,16 @@ object SbtBundle extends AutoPlugin {
   }
 
 
+  private [bundle] def escapeHttpRewrite(rewrite: String): String =
+    rewrite.replaceAll("\\\\", "\\\\\\\\")
+
   private def formatHttpRequestMapping(requestMapping: Http.Request): String = {
     val (pathConfigKey, pathConfigValue) = PathMatching.pathConfigKeyValue(requestMapping.path)
     val lines =
       Seq(
         Option(s"""$pathConfigKey = "$pathConfigValue""""),
         requestMapping.method.map(v => s"""method = "$v""""),
-        requestMapping.rewrite.map(v => s"""rewrite = "$v""""))
+        requestMapping.rewrite.map(v => s"""rewrite = "${escapeHttpRewrite(v)}""""))
         .collect {
           case Some(value) => value
         }

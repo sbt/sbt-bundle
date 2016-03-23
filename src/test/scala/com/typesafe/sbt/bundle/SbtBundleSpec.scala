@@ -1,5 +1,6 @@
 package com.typesafe.sbt.bundle
 
+import com.typesafe.sbt.bundle.Import.Http.Request
 import org.scalatest.{ Matchers, WordSpec }
 import sbt.IO
 import java.io.File
@@ -38,6 +39,35 @@ class SbtBundleSpec extends WordSpec with Matchers {
             }
           }
       }
+  }
+
+  "SbtBundle.Http implicit methods" should {
+    "map HTTP method to path" in {
+      val request: Request = "GET" -> "/my-path"
+      request shouldBe Request(method = Some(Import.Http.Method.GET), path = Left("/my-path"), rewrite = None)
+    }
+
+    "map path to rewrite" in {
+      val request: Request = "/path-a" -> "/path-b"
+      request shouldBe Request(method = None, path = Left("/path-a"), rewrite = Some("/path-b"))
+    }
+
+    "reject invalid mapping of two strings" in {
+      intercept[IllegalArgumentException] {
+        val request: Request = "BLARG" -> "/path-b"
+      }
+
+    }
+  }
+
+  "SbtBundle.escapeHttpRewrite" should {
+    "preserve rewrite string as-is" in {
+      SbtBundle.escapeHttpRewrite("/some-path") shouldBe "/some-path"
+    }
+
+    "escape backslash" in {
+      SbtBundle.escapeHttpRewrite("/foo/\\1/bar") shouldBe "/foo/\\\\1/bar"
+    }
   }
 
   "SbtBundle.recursiveListFiles" should {
