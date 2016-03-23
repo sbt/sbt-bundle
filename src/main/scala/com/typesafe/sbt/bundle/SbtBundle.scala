@@ -716,7 +716,12 @@ object SbtBundle extends AutoPlugin {
     def toString[T](valueAndConfigName: (T, Option[String]), f: T => String): (String, Option[String]) =
       f(valueAndConfigName._1) -> valueAndConfigName._2
 
-    val componentPrefix = s"""components."${(normalizedName in config).value}""""
+    def escapeStartCommand(startCommand: Seq[String]): String = {
+      val executable = startCommand.head
+      val arguments = startCommand.tail
+      val executableEscaped = executable.replace("\\", "/")
+      formatSeq(Seq(executableEscaped) ++ arguments)
+    }
 
     val declarations =
       Seq(s"""version              = "${bundleConfVersion.value}"""") ++
@@ -731,7 +736,7 @@ object SbtBundle extends AutoPlugin {
         Seq("components = {", s"  ${(normalizedName in config).value} = {") ++
         formatValue(s"""    description      = "%s"""", toString((projectInfoConfigName in config).value, (v: ModuleInfo) => v.description)) ++
         formatValue(s"""    file-system-type = "%s"""", (bundleTypeConfigName in config).value) ++
-        formatValue(s"""    start-command    = %s""", toString((startCommandConfigName in config).value, (v: Seq[String]) => formatSeq(v))) ++
+        formatValue(s"""    start-command    = %s""", toString((startCommandConfigName in config).value, (v: Seq[String]) => escapeStartCommand(v))) ++
         formatValue(s"""    endpoints = %s""", toString((endpointsConfigName in config).value, (v: Map[String, Endpoint]) => formatEndpoints(bundleConfVersion.value, v))) ++
         Seq("  }", "}") ++
         checkComponents
