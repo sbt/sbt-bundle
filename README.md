@@ -2,6 +2,8 @@
 
 [![Build Status](https://api.travis-ci.org/sbt/sbt-bundle.png?branch=master)](https://travis-ci.org/sbt/sbt-bundle)
 
+# This plugin has been replaced by [sbt-conductr](https://github.com/typesafehub/sbt-conductr). Please use this instead.
+
 ## Introduction
 
 A plugin that uses the [sbt-native-packager](https://github.com/sbt/sbt-native-packager) to produce Typesafe ConductR bundles.
